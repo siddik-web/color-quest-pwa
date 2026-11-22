@@ -328,3 +328,30 @@ test("expert puzzle solver preserves bottle identity with double-digit color IDs
   expect(result.solutionLength).toBeGreaterThan(0);
   expect(result.solved).toBe(true);
 });
+
+
+test("source bottle returns to its original board position after pouring", async ({ page }) => {
+  const move = await page.evaluate(() => {
+    const state = window.__cq.state;
+    for (let from = 0; from < state.length; from++) {
+      if (!state[from].length) continue;
+      for (let to = 0; to < state.length; to++) {
+        if (from !== to && state[to].length < 4 &&
+          (!state[to].length || state[to][state[to].length - 1] === state[from][state[from].length - 1])) return [from, to];
+      }
+    }
+    return null;
+  });
+  expect(move).not.toBeNull();
+  const source = page.locator("#board .bottle").nth(move[0]);
+  const before = await source.boundingBox();
+  await page.locator("#board .bottle").nth(move[0]).click();
+  await page.locator("#board .bottle").nth(move[1]).click();
+  await expect(page.locator("#moves")).toContainText("Moves 1");
+  await page.waitForTimeout(350);
+  const after = await page.locator("#board .bottle").nth(move[0]).boundingBox();
+  expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+  const transform = await page.locator("#board .bottle").nth(move[0]).evaluate(el => getComputedStyle(el).transform);
+  expect(transform).toBe("none");
+});
