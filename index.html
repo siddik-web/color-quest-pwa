@@ -279,8 +279,8 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
 (()=>{
 "use strict";
 const CAP = 4;
-// Color-blind-aware, perceptually balanced liquid palette. Keep index order stable for saved puzzles.
-let COLORS = ["#D55E00","#E69F00","#F0E442","#009E73","#56B4E9","#0072B2","#CC79A7","#8B78B8","#A6761D","#6B7280","#E76F8A","#00A6A6"];
+// Vivid, high-contrast liquid palette restored from the original game. Keep index order stable for saved puzzles.
+let COLORS = ["#ff5a5f","#ffa63d","#ffe14d","#7ddc4a","#27c3a6","#3fa7ff","#6c63ff","#c05cff","#ff6fb5","#9a6b45","#9aa3b2","#1fd1ff"];
 const SYMBOLS = ["●","▲","■","◆","★","✚","♥","☾","✖","▼","◐","☀"];
 const DAILY_COLORS = [7,5,6,7,6,8,9]; // Sun..Sat
 const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -802,9 +802,9 @@ function renderAch(){
 
 const THEMES = {
   classic:{ name:"Classic", cost:0, bg:"#172044", panel:"#263568", colors:COLORS },
-  neon:   { name:"Neon", cost:120, bg:"#101322", panel:"#202943", colors:["#F06B4F","#F2A93B","#F3E56B","#42C99A","#62C5F0","#398BE0","#D77BC0","#A58BE8","#C18A4B","#9AA4B2","#F08091","#39C7C4"] },
-  candy:  { name:"Candy", cost:200, bg:"#29213D", panel:"#403256", colors:["#D96B82","#E8A36B","#E8D878","#8FCB91","#72C8B5","#78AEE0","#A89BDB","#C18BCB","#E59AB9","#B99A80","#AEB9C8","#68C5D0"] },
-  ocean:  { name:"Ocean", cost:300, bg:"#102B38", panel:"#1B4655", colors:["#D96D5F","#DDA45B","#E7D77B","#79B98B","#35B9A4","#55A9D7","#748FCB","#A18BCB","#D58CB0","#A98A70","#9BAFBD","#42C2C7"] }
+  neon:   { name:"Neon", cost:120, bg:"#101322", panel:"#202943", colors:["#ff2e63","#ff9f1c","#f9f871","#39ff14","#00f5d4","#00b4ff","#7b5cff","#d400ff","#ff61d8","#c98b5a","#b5bdc9","#00e5ff"] },
+  candy:  { name:"Candy", cost:200, bg:"#29213D", panel:"#403256", colors:["#ff6b81","#ffb26b","#ffe66d","#a0e57a","#6ee7c8","#74b9ff","#a29bfe","#e17aff","#ff8fd1","#c8a07a","#cfd6e4","#7fe3ff"] },
+  ocean:  { name:"Ocean", cost:300, bg:"#102B38", panel:"#1B4655", colors:["#ff7a7a","#ffb454","#ffe27a","#7ee081","#2ed1b3","#4db8ff","#7a8cff","#b78cff","#ff8ec9","#b58863","#a9b8c6","#5ff0ff"] }
 };
 function applyTheme(id){
   const t = THEMES[id] || THEMES.classic; COLORS = t.colors;
