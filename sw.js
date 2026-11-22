@@ -1,4 +1,4 @@
-const CACHE = "color-quest-v17";
+const CACHE = "color-quest-v18";
 const ASSETS = [
   "./",
   "./index.html",
