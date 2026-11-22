@@ -78,6 +78,29 @@ dialog .row button{flex:1}
 .dr.now{outline:2px solid var(--accent);background:rgba(255,210,74,.15)}
 #confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none}
 </style>
+<style>
+/* Color Quest 2D graphics refresh */
+:root{--bg:#172044;--panel:#263568;--text:#f7f8ff;--muted:#bbc7ee;--accent:#ffd24a;--glass:rgba(255,255,255,.14)}
+html,body{background:radial-gradient(ellipse at 50% 12%,#354b91 0%,#19254e 52%,#10172f 100%);background-attachment:fixed}
+#app{background-image:radial-gradient(circle at 12% 24%,#ffffff12 0 2px,transparent 3px),radial-gradient(circle at 88% 42%,#ffffff12 0 3px,transparent 4px);background-size:120px 150px,170px 190px}
+h1{font-size:21px;font-weight:900;letter-spacing:.2px;text-shadow:0 2px 0 #101a42,0 4px 14px #0008}
+.chip{background:linear-gradient(180deg,#5269b2,#293b76);border:1px solid #91a9ed;border-bottom-width:3px;color:#e7eeff;box-shadow:0 3px 8px #0003}
+nav button,footer button{background:linear-gradient(180deg,#536dc0,#344988);border:1px solid #9bb8ff;border-bottom:4px solid #1c2c61;box-shadow:0 4px 8px #0004;text-shadow:0 1px 2px #18214a}
+nav button.on,button.on{background:linear-gradient(180deg,#fff09b,#ffbe31);border-color:#fff3b6;border-bottom-color:#b97413;color:#422708;text-shadow:none;box-shadow:0 4px 10px #0004}
+button:disabled{filter:saturate(.55)}
+#board{filter:drop-shadow(0 8px 12px #0002)}
+.bottle{border:4px solid #d9edff;border-top:4px solid #f5fbff;border-radius:14px 14px 25px 25px;background:linear-gradient(90deg,#ffffff55,#b9e1ff18 22%,#ffffff08 65%,#ffffff44);box-shadow:inset 4px 0 7px #fff7,inset -4px 0 8px #8ab8e866,0 5px 12px #0004;overflow:hidden}
+.bottle:before{content:"";position:absolute;left:-5px;right:-5px;top:-5px;height:12px;border-radius:50%;background:linear-gradient(180deg,#fff,#b8d4f5);border:2px solid #eff8ff;box-shadow:0 2px 5px #0004}
+.bottle.sel{box-shadow:0 0 0 3px #ffdf63,0 12px 18px #0005,inset 4px 0 7px #fff7}
+.bottle.done{border-color:#91ffb7;box-shadow:0 0 18px #7dffb088,inset 4px 0 7px #fff7}
+.seg{border-radius:7px;box-shadow:inset 0 3px 4px #ffffff66,inset 0 -3px 4px #0002,0 1px 2px #0002}
+.seg:first-child{border-bottom-left-radius:18px;border-bottom-right-radius:18px}
+#info{font-weight:700;color:#d5defd}
+footer button{font-weight:750;font-size:12px}
+dialog{background:linear-gradient(145deg,#354a8d,#1d2b5a);border:2px solid #859fe9;box-shadow:0 18px 55px #0008}
+dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
+@media(max-width:380px){nav{gap:5px}nav button{font-size:11px;padding:9px 1px}footer{gap:5px}footer button{font-size:11px}}
+</style>
 </head>
 <body>
 <div id="app">
