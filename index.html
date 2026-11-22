@@ -177,6 +177,12 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
 
 </style>
 <style>
+/* Daily and weekly quest panel */
+#questList{max-height:52vh;overflow:auto;text-align:left}
+.quest-row{display:flex;align-items:center;gap:10px;padding:11px;margin:8px 0;border:1px solid #ffffff24;border-radius:12px;background:#ffffff0a}
+.quest-copy{flex:1;min-width:0}.quest-copy b{display:block;font-size:13px}.quest-copy small{color:var(--muted);font-size:11px}
+.quest-progress{height:6px;background:#ffffff20;border-radius:99px;overflow:hidden;margin-top:7px}.quest-progress i{display:block;height:100%;background:linear-gradient(90deg,#7dffb0,var(--accent));border-radius:99px}
+.quest-row button{min-width:76px;padding:8px;font-size:12px}
 /* Collectible cosmetic shop */
 .shop-section{margin:16px 0 8px;text-align:left}
 .shop-section h3{font-size:13px;letter-spacing:.5px;color:var(--muted);margin:0 0 8px;text-transform:uppercase}
@@ -210,6 +216,7 @@ body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24
     <button id="mEndless">Endless</button>
     <button id="mCal" aria-label="Calendar"><img class="nav-icon" src="assets/2d/icons/calendar.svg" alt=""></button>
     <button id="mAch" aria-label="Trophies"><img class="nav-icon" src="assets/2d/icons/trophy.svg" alt=""></button>
+    <button id="mQuest" aria-label="Quests">🎯</button>
     <button id="mShop" aria-label="Shop"><img class="nav-icon" src="assets/2d/icons/shop.svg" alt=""></button>
     <button id="mSet" aria-label="Settings"><img class="nav-icon" src="assets/2d/icons/settings.svg" alt=""></button>
   </nav>
@@ -244,6 +251,13 @@ body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24
   <div id="journeyPath" aria-label="Recent daily challenge journey"></div>
   <div id="cal"></div>
   <div class="row"><button id="calClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="questDlg">
+  <h2>🎯 Quests</h2>
+  <div id="questSummary" style="color:var(--muted);font-size:13px;margin:8px 0"></div>
+  <div id="questList"></div>
+  <div class="row"><button id="questClose" class="on">Close</button></div>
 </dialog>
 
 <dialog id="levelDlg">
@@ -448,7 +462,14 @@ function generate(seedStr, nColors){
   const pool = []; for(let c=0;c<nColors;c++) for(let k=0;k<CAP;k++) pool.push(c);
   const bottles = []; for(let i=0;i<nColors;i++) bottles.push(pool.slice(i*CAP,(i+1)*CAP));
   bottles.push([],[]); bottles[0].reverse();
-  return { bottles, par: nColors*4 };
+  // Guaranteed-solvable fallback: two partial matching pairs can be completed in two legal pours.
+  const fallback = Array.from({length:nColors}, (_, color) => Array(CAP).fill(color));
+  fallback[0] = [0,0,0];
+  fallback[1] = [1,1,1];
+  fallback.splice(2,0,[0,1]);
+  fallback.push([],[]);
+  const verified = solve(fallback, 10000);
+  return { bottles:fallback, par:verified ? verified.length : 2 };
 }
 
 /* ---------- game state ---------- */
@@ -540,6 +561,7 @@ function doPour(a, b){
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
+    trackQuestMove();
     if(isSolved(state)) win(); else { persistDailyProgress(); if(full) sfx.done(); }
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
@@ -616,6 +638,7 @@ function win(){
     }
     $("next").textContent = "Continue";
   }
+  if(fresh) trackQuestWin(flawless);
   let rewardLine = "";
   if(fresh){
     if(st===3) coins += 10;
@@ -995,6 +1018,64 @@ $("bottle").onclick = ()=>{
 };
 
 const REW = [10,15,20,25,30,40,75];
+
+const QUEST_REWARDS = { daily:20, weekly:100 };
+function isoWeekKey(date=new Date()){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const week=Math.ceil((((d-yearStart)/86400000)+1)/7);
+  return d.getUTCFullYear()+"-W"+String(week).padStart(2,"0");
+}
+function ensureQuestState(){
+  const today=dateKey(), week=isoWeekKey();
+  if(!save.quests || typeof save.quests!=="object") save.quests={};
+  if(save.quests.day!==today) save.quests={day:today,daily:{solves:0,moves:0,noHint:0},dailyClaimed:{},week:week,weekly:{solves:0},weeklyClaimed:false};
+  if(save.quests.week!==week){save.quests.week=week;save.quests.weekly={solves:0};save.quests.weeklyClaimed=false;}
+  save.quests.daily=Object.assign({solves:0,moves:0,noHint:0},save.quests.daily);
+  save.quests.dailyClaimed=save.quests.dailyClaimed||{};
+  save.quests.weekly=Object.assign({solves:0},save.quests.weekly);
+}
+function trackQuestMove(){
+  ensureQuestState();save.quests.daily.moves++;LS.set("save",save);
+}
+function trackQuestWin(flawless){
+  ensureQuestState();save.quests.daily.solves++;save.quests.weekly.solves++;
+  if(flawless)save.quests.daily.noHint++;
+  LS.set("save",save);
+}
+const DAILY_QUESTS=[
+  {id:"solve",icon:"🧪",title:"Puzzle Solver",detail:"Complete 1 puzzle today",goal:1,value:q=>q.solves},
+  {id:"moves",icon:"💧",title:"Steady Pour",detail:"Make 10 pours today",goal:10,value:q=>q.moves},
+  {id:"clean",icon:"✨",title:"No-help Finish",detail:"Win without hints or extra bottles",goal:1,value:q=>q.noHint}
+];
+function renderQuests(){
+  ensureQuestState();
+  const q=save.quests,box=$("questList");box.innerHTML="";
+  $("questSummary").textContent="Daily quests reset at local midnight · Weekly goal resets every Monday";
+  const section=(label)=>{const h=document.createElement("h3");h.className="shop-section";h.textContent=label;box.appendChild(h);};
+  const add=(id,icon,title,detail,value,goal,reward,claimed,onClaim)=>{
+    const row=document.createElement("div");row.className="quest-row";
+    const copy=document.createElement("div");copy.className="quest-copy";
+    const name=document.createElement("b");name.textContent=icon+" "+title;
+    const desc=document.createElement("small");desc.textContent=detail+" · "+Math.min(value,goal)+"/"+goal+" · "+reward+" coins";
+    const track=document.createElement("div");track.className="quest-progress";
+    const fill=document.createElement("i");fill.style.width=Math.min(100,Math.round(value/goal*100))+"%";track.appendChild(fill);
+    copy.append(name,desc,track);
+    const btn=document.createElement("button");
+    btn.textContent=claimed?"Claimed":value>=goal?"Claim":"In progress";
+    btn.disabled=claimed||value<goal;
+    btn.onclick=()=>{if(claimed||value<goal)return;onClaim();LS.set("save",save);hud();renderQuests();sfx.done();};
+    row.append(copy,btn);box.appendChild(row);
+  };
+  section("Daily quests");
+  DAILY_QUESTS.forEach(item=>add(item.id,item.icon,item.title,item.detail,item.value(q.daily),item.goal,QUEST_REWARDS.daily,!!q.dailyClaimed[item.id],()=>{q.dailyClaimed[item.id]=true;save.coins+=QUEST_REWARDS.daily;}));
+  section("Weekly challenge");
+  add("weekly","🏆","Weekly Puzzle Champion","Complete 5 puzzles this week",q.weekly.solves,5,QUEST_REWARDS.weekly,q.weeklyClaimed,()=>{q.weeklyClaimed=true;save.coins+=QUEST_REWARDS.weekly;});
+}
+$("mQuest").onclick=()=>{renderQuests();$("questDlg").showModal();};
+$("questClose").onclick=()=>$("questDlg").close();
+
 let drPending = null;
 function checkDailyReward(){
   const today = dateKey(); if(save.dr.last === today || $("drDlg").open || $("tutorialDlg").open) return;
@@ -1043,6 +1124,7 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 /* service worker */
 if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
+ensureQuestState();
 applyTheme(save.theme);
 applyCosmetics();
 startGame("daily");
@@ -1067,7 +1149,10 @@ window.__cq = {
   get tutorialStep(){ return tutorialStep; },
   starsFor,
   applyReplayResult,
-  get economyMilestones(){ return save.economyMilestones; }
+  get economyMilestones(){ return save.economyMilestones; },
+  renderQuests,
+  get quests(){ ensureQuestState(); return save.quests; },
+  get generatorFallback(){ const n=4; const b=Array.from({length:n},(_,c)=>Array(CAP).fill(c)); b[0]=[0,0,0]; b[1]=[1,1,1]; b.splice(2,0,[0,1]); b.push([],[]); const sol=solve(b,10000); return !!sol && isSolved(sol.reduce((s,m)=>{pour(s,m[0],m[1]);return s;},b.map(x=>x.slice()))); }
 };
 })();
 </script>
