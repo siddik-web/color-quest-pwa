@@ -1030,8 +1030,16 @@ function isoWeekKey(date=new Date()){
 function ensureQuestState(){
   const today=dateKey(), week=isoWeekKey();
   if(!save.quests || typeof save.quests!=="object") save.quests={};
-  if(save.quests.day!==today) save.quests={day:today,daily:{solves:0,moves:0,noHint:0},dailyClaimed:{},week:week,weekly:{solves:0},weeklyClaimed:false};
-  if(save.quests.week!==week){save.quests.week=week;save.quests.weekly={solves:0};save.quests.weeklyClaimed=false;}
+  if(save.quests.day!==today){
+    save.quests.day=today;
+    save.quests.daily={solves:0,moves:0,noHint:0};
+    save.quests.dailyClaimed={};
+  }
+  if(save.quests.week!==week){
+    save.quests.week=week;
+    save.quests.weekly={solves:0};
+    save.quests.weeklyClaimed=false;
+  }
   save.quests.daily=Object.assign({solves:0,moves:0,noHint:0},save.quests.daily);
   save.quests.dailyClaimed=save.quests.dailyClaimed||{};
   save.quests.weekly=Object.assign({solves:0},save.quests.weekly);
