@@ -255,6 +255,27 @@ test("milestone levels use a frozen reserve that thaws after two legal pours", a
   await expect(page.locator("#modifierStatus")).toContainText("thawed");
 });
 
+test("Limited Moves activates on alternating milestones with a par-based fair cap", async ({ page }) => {
+  await page.evaluate(() => window.__cq.startGame("endless", 10));
+  await expect(page.locator("#title")).toContainText("Level 10");
+  await expect(page.locator("#modifierStatus")).toContainText("Limited Moves");
+  const challenge = await page.evaluate(() => ({
+    modifier: window.__cq.activeModifier.id,
+    par: window.__cq.puzzle.par,
+    limit: window.__cq.activeModifier.moveLimit,
+    expectedLimit: window.__cq.moveLimitForLevel(10, window.__cq.puzzle.par)
+  }));
+  expect(challenge.modifier).toBe("limited-moves");
+  expect(challenge.limit).toBe(challenge.expectedLimit);
+  expect(challenge.limit).toBeGreaterThan(challenge.par);
+  await expect(page.locator("#modifierStatus")).toContainText(challenge.limit + " left");
+
+  await page.evaluate(() => window.__cq.startGame("endless", 15));
+  await expect(page.locator("#modifierStatus")).toContainText("Frozen Reserve");
+  await page.evaluate(() => window.__cq.startGame("endless", 20));
+  await expect(page.locator("#modifierStatus")).toContainText("Limited Moves");
+});
+
 test("ordinary levels do not enable a special puzzle modifier", async ({ page }) => {
   await page.evaluate(() => window.__cq.startGame("endless", 4));
   await expect(page.locator("#modifierStatus")).toBeEmpty();
