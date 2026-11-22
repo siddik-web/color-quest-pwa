@@ -179,7 +179,7 @@ test("streak shields are persisted, capped, and consumed on a single missed day"
   assert.match(html, /save\.streakGraceDate === k/);
   assert.match(html, /if\(save\.streakFreezes>=2\) return false/);
   assert.match(html, /id="streakFreeze"/);
-  assert.match(read("sw.js"), /color-quest-v29/);
+  assert.match(read("sw.js"), /color-quest-v30/);
 });
 
 test("frozen reserve modifier is limited to milestone levels and unlocks after two pours", () => {
