@@ -17,19 +17,20 @@
 html,body{margin:0;height:100%;touch-action:manipulation;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
 #app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 6px}
-h1{font-size:20px;margin:0;letter-spacing:.5px}
-.chips{display:flex;gap:8px}
-.chip{background:var(--panel);border-radius:999px;padding:6px 12px;font-size:13px;color:var(--muted)}
+h1{font-size:18px;margin:0;letter-spacing:.5px}
+.chips{display:flex;gap:6px}
+.chip{background:var(--panel);border-radius:999px;padding:5px 9px;font-size:12px;color:var(--muted)}
 .chip b{color:var(--text)}
 nav{display:flex;gap:8px;margin:6px 0 10px}
-nav button{flex:1}
+nav button{flex:1;padding:10px 2px;min-width:0}
+#mDaily,#mEndless{flex:1.8}
 button{font:inherit;color:var(--text);background:var(--panel);border:0;border-radius:12px;padding:10px 12px;cursor:pointer}
 button:active{transform:scale(.97)}
 button.on{background:var(--accent);color:#1b1b1b;font-weight:700}
 button:disabled{opacity:.4}
 #info{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);padding:2px 4px 8px}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:22px 14px;justify-content:center;align-content:center;padding:10px 0}
-.bottle{width:48px;height:168px;border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
+.bottle{width:var(--bw,48px);height:var(--bh,168px);border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
 .bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
 .bottle.land{animation:land .26s ease-out;z-index:5}
 @keyframes land{from{transform:translate(var(--tx),var(--ty)) rotate(var(--rot))}to{transform:none}}
@@ -44,7 +45,7 @@ button:disabled{opacity:.4}
 .seg:first-child{border-bottom-left-radius:18px;border-bottom-right-radius:18px}
 .noshape .seg span{display:none}
 footer{display:flex;gap:8px;padding:10px 0 14px}
-footer button{flex:1}
+footer button{flex:1;min-width:0;padding:10px 2px;font-size:13px;white-space:nowrap}
 dialog{background:var(--panel);color:var(--text);border:0;border-radius:18px;padding:22px;max-width:340px;width:88%;text-align:center}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 6px}
@@ -57,27 +58,49 @@ dialog .row button{flex:1}
 #cal div.today{outline:2px solid var(--accent)}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
+#lvrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:0 2px 4px}
+#lvrow .bar{flex:1;height:7px;background:var(--glass);border-radius:99px;overflow:hidden}
+#lvrow .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#7dffb0,var(--accent));border-radius:99px;transition:width .4s}
+.shoprow{display:flex;align-items:center;gap:10px;margin:10px 0;text-align:left}
+.shoprow .sw{display:flex;gap:3px;padding:8px;border-radius:10px;flex:0 0 auto}
+.shoprow .sw i{width:9px;height:22px;border-radius:3px;display:block}
+.shoprow .nm{flex:1;font-weight:700}
+.shoprow button{flex:0 0 auto;min-width:92px}
+#achList{max-height:48vh;overflow:auto;margin-top:8px}
+.achrow{display:flex;gap:10px;align-items:center;text-align:left;margin:8px 0;opacity:.45}
+.achrow.ok{opacity:1}
+.achrow .ic{font-size:26px;width:34px;text-align:center}
+.achrow small{color:var(--muted)}
+#drGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
+.dr{background:var(--glass);border-radius:10px;padding:6px 2px;font-size:12px;display:flex;flex-direction:column;align-items:center}
+.dr b{font-size:16px}
+.dr.got{opacity:.45}
+.dr.now{outline:2px solid var(--accent);background:rgba(255,210,74,.15)}
+#confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
     <h1>🎨 Color Quest</h1>
-    <div class="chips"><span class="chip">🔥 <b id="streak">0</b></span><span class="chip">⭐ <b id="stars">0</b></span></div>
+    <div class="chips"><span class="chip">🔥 <b id="streak">0</b></span><span class="chip">⭐ <b id="stars">0</b></span><span class="chip">🪙 <b id="coins">0</b></span></div>
   </header>
+  <div id="lvrow"><span id="plv"></span><div class="bar"><i id="xpfill"></i></div><span id="xptxt"></span></div>
   <nav>
     <button id="mDaily" class="on">Daily</button>
     <button id="mEndless">Endless</button>
-    <button id="mCal">Calendar</button>
-    <button id="mSet">⚙︎</button>
+    <button id="mCal" aria-label="Calendar">📅</button>
+    <button id="mAch" aria-label="Trophies">🏆</button>
+    <button id="mShop" aria-label="Shop">🛍️</button>
+    <button id="mSet" aria-label="Settings">⚙️</button>
   </nav>
   <div id="info"><span id="title"></span><span id="moves"></span></div>
   <div id="board"></div>
   <footer>
     <button id="undo">↶ Undo</button>
     <button id="hint">💡 Hint</button>
-    <button id="restart">⟲ Restart</button>
-    <button id="install" hidden>⬇ Install</button>
+    <button id="restart">⟲ Reset</button>
+    <button id="bottle">🧪 +1 · 30🪙</button>
   </footer>
 </div>
 
@@ -96,10 +119,33 @@ dialog .row button{flex:1}
 
 <dialog id="setDlg">
   <h2>Settings</h2>
+  <div class="row"><button id="install" hidden>⬇ Install app</button></div>
   <div class="row"><button id="sndBtn">Sound: On</button></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="shopDlg">
+  <h2>🛍️ Shop</h2>
+  <div style="color:var(--muted)">Your coins: 🪙 <b id="shopCoins" style="color:var(--text)">0</b></div>
+  <div id="shopList"></div>
+  <div class="row"><button id="adBtn" hidden>📺 Watch ad: +30 🪙</button></div>
+  <div class="row"><button id="shopClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="achDlg">
+  <h2>🏆 Trophies</h2>
+  <div id="achStats" style="color:var(--muted);font-size:13px"></div>
+  <div id="achList"></div>
+  <div class="row"><button id="achClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="drDlg">
+  <h2>🎁 Daily reward</h2>
+  <div id="drText" style="color:var(--muted)"></div>
+  <div id="drGrid"></div>
+  <div class="row"><button id="drClaim" class="on">Claim</button></div>
 </dialog>
 
 <div class="toast" id="toast"></div>
@@ -108,7 +154,7 @@ dialog .row button{flex:1}
 (()=>{
 "use strict";
 const CAP = 4;
-const COLORS = ["#ff5a5f","#ffa63d","#ffe14d","#7ddc4a","#27c3a6","#3fa7ff","#6c63ff","#c05cff","#ff6fb5","#9a6b45","#9aa3b2","#1fd1ff"];
+let COLORS = ["#ff5a5f","#ffa63d","#ffe14d","#7ddc4a","#27c3a6","#3fa7ff","#6c63ff","#c05cff","#ff6fb5","#9a6b45","#9aa3b2","#1fd1ff"];
 const SYMBOLS = ["●","▲","■","◆","★","✚","♥","☾","✖","▼","◐","☀"];
 const DAILY_COLORS = [7,5,6,7,6,8,9]; // Sun..Sat
 const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -118,7 +164,10 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem("cq."+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
-let save = LS.get("save", { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false });
+const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
+  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
+let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr);
 
 /* ---------- sound (synthesised with WebAudio, no files) ---------- */
 const sfx = (()=>{
@@ -216,7 +265,7 @@ function generate(seedStr, nColors){
 }
 
 /* ---------- game state ---------- */
-let busy = false, fx = null;
+let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
 let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
 
 const $ = id => document.getElementById(id);
@@ -224,7 +273,7 @@ function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"),1600); }
 
 function startGame(m){
-  mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null;
+  mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
   let n;
   if(m==="daily"){
     const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
@@ -242,6 +291,7 @@ function startGame(m){
 function render(){
   const board = $("board"); board.innerHTML = "";
   board.classList.toggle("noshape", !save.cb);
+  { const n = state.length, z = n<=6 ? [60,204] : n<=8 ? [54,186] : [48,168]; board.style.setProperty("--bw", z[0]+"px"); board.style.setProperty("--bh", z[1]+"px"); }
   state.forEach((b,i)=>{
     const el = document.createElement("div");
     el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
@@ -253,7 +303,7 @@ function render(){
   fx = null;
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
   $("undo").disabled = !history.length;
-  $("streak").textContent = save.streak; $("stars").textContent = save.stars;
+  hud();
 }
 
 function tap(i){
@@ -304,7 +354,8 @@ function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2
 function win(){
   finished = true;
   const st = starsFor(moves, puzzle.par);
-  let extra = "";
+  const flawless = hintsUsed === 0 && extraBottles === 0;
+  let coins = 0, xp = 0, note = "", fresh = true;
   if(mode==="daily"){
     const k = puzzleDate;
     if(!save.won[k]){
@@ -313,25 +364,40 @@ function win(){
       save.streak = (save.last === dateKey(prev)) ? save.streak+1 : 1;
       save.last = k; save.best = Math.max(save.best, save.streak);
       save.won[k] = { moves, stars: st };
-      extra = "Streak: " + save.streak + " 🔥 (best " + save.best + ")";
-    } else {
-      extra = "Practice run: today's result is already saved.";
-    }
+      save.stats.daily++;
+      coins = 25 + st*10 + Math.min(save.streak,7)*5; xp = 40 + st*15;
+      note = "Streak: " + save.streak + " 🔥 (best " + save.best + ")";
+    } else { fresh = false; note = "Practice run: today's result is already saved."; }
     $("next").textContent = "Done";
   } else {
-    save.stars += st; save.level++; extra = "Next: Level " + save.level; $("next").textContent = "Next level";
+    save.stars += st; save.level++;
+    coins = 10 + st*5; xp = 20 + st*10;
+    note = "Next: Level " + save.level; $("next").textContent = "Next level";
+  }
+  let rewardLine = "";
+  if(fresh){
+    if(st===3) coins += 10;
+    if(flawless){ coins += 10; save.stats.nohint++; }
+    save.stats.wins++; if(st===3) save.stats.perfect++;
+    save.coins += coins;
+    const ups = addXp(xp);
+    rewardLine = "<br>+" + coins + " 🪙 · +" + xp + " XP" + (flawless ? " · no-help bonus" : "");
+    if(ups) note += "<br>⬆ Level up! You are Lv " + save.plv + " " + titleOf(save.plv) + " (+" + (ups*20) + " 🪙)";
+    const got = checkAch(false);
+    if(got.length) note += "<br>🏆 " + got.map(x=>x.icon+" "+x.name).join(", ") + " (+" + (got.length*25) + " 🪙)";
   }
   LS.set("save", save); render();
-  $("winTitle").textContent = "Solved!";
+  $("winTitle").textContent = st===3 ? "Perfect!" : "Solved!";
   $("winStars").textContent = "⭐".repeat(st) + "☆".repeat(3-st);
-  $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")<br>" + extra;
+  $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")" + rewardLine + "<br>" + note;
   sfx.win();
   $("win").showModal();
+  if(st>=2) confetti();
 }
 
 /* ---------- controls ---------- */
 $("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; render(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
 let plan = null;
 const exactKey = st => st.map(b=>b.join("")).join("|");
@@ -349,6 +415,10 @@ $("hint").onclick = ()=>{
   if(finished || busy) return;
   const m = nextHint();
   if(!m){ toast("No hint available"); return; }
+  const k = exactKey(state), cost = (hintsUsed === 0 || hintPaid === k) ? 0 : 5;
+  if(cost && save.coins < cost){ toast("Need 5 🪙 for another hint. Win puzzles to earn coins."); sfx.bad(); return; }
+  if(cost){ save.coins -= cost; LS.set("save", save); }
+  if(hintPaid !== k){ hintsUsed++; hintPaid = k; }
   const [i,j] = m; sel = i; render();
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
@@ -387,10 +457,135 @@ const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false 
 $("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
 syncSnd();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
-$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:save.cb }; LS.set("save", save); $("setDlg").close(); startGame(mode); } };
+$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
 /* streak decay if a day was missed */
 (function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
+
+/* ---------- progression: coins, XP, trophies, themes, daily reward ---------- */
+const TITLES = ["Rookie","Mixer","Sorter","Pourer","Alchemist","Mastermind","Legend"];
+const xpNeed = l => 80 + (l-1)*40;
+const titleOf = l => TITLES[Math.min(TITLES.length-1, Math.floor((l-1)/3))];
+function addXp(n){ save.xp += n; let ups = 0; while(save.xp >= xpNeed(save.plv)){ save.xp -= xpNeed(save.plv); save.plv++; save.coins += 20; ups++; } return ups; }
+function hud(){
+  $("streak").textContent = save.streak; $("stars").textContent = save.stars; $("coins").textContent = save.coins;
+  $("plv").textContent = "Lv " + save.plv + " · " + titleOf(save.plv);
+  $("xpfill").style.width = Math.min(100, Math.round(save.xp / xpNeed(save.plv) * 100)) + "%";
+  $("xptxt").textContent = save.xp + "/" + xpNeed(save.plv) + " XP";
+  $("hint").textContent = hintsUsed === 0 ? "💡 Hint" : "💡 5🪙";
+  $("bottle").textContent = extraBottles ? "🧪 Added" : "🧪 +1 · 30🪙";
+}
+
+const ACH = [
+  { id:"first", icon:"🎉", name:"First Pour",     desc:"Solve your first puzzle",            test:s=>s.stats.wins>=1 },
+  { id:"w10",   icon:"🧪", name:"Lab Rat",        desc:"Solve 10 puzzles",                   test:s=>s.stats.wins>=10 },
+  { id:"w50",   icon:"⚗️", name:"Alchemist",      desc:"Solve 50 puzzles",                   test:s=>s.stats.wins>=50 },
+  { id:"p5",    icon:"⭐", name:"Perfectionist",  desc:"Earn 3 stars five times",            test:s=>s.stats.perfect>=5 },
+  { id:"nh5",   icon:"🧠", name:"No Help Needed", desc:"Win 5 times with no hints or extra bottle", test:s=>s.stats.nohint>=5 },
+  { id:"s3",    icon:"🔥", name:"On Fire",        desc:"3-day daily streak",                 test:s=>s.best>=3 },
+  { id:"s7",    icon:"🏅", name:"Week Warrior",   desc:"7-day daily streak",                 test:s=>s.best>=7 },
+  { id:"s30",   icon:"👑", name:"Monthly Master", desc:"30-day daily streak",                test:s=>s.best>=30 },
+  { id:"d10",   icon:"📅", name:"Regular",        desc:"Solve 10 daily puzzles",             test:s=>s.stats.daily>=10 },
+  { id:"l10",   icon:"🚀", name:"Level 10",       desc:"Reach Endless level 10",             test:s=>s.level>=10 },
+  { id:"l25",   icon:"🛰️", name:"Level 25",       desc:"Reach Endless level 25",             test:s=>s.level>=25 },
+  { id:"rich",  icon:"💰", name:"Piggy Bank",     desc:"Hold 500 coins",                     test:s=>s.coins>=500 },
+  { id:"coll",  icon:"🎨", name:"Collector",      desc:"Own every theme",                    test:s=>Object.keys(s.owned).length>=Object.keys(THEMES).length }
+];
+function checkAch(show){
+  const got = [];
+  ACH.forEach(a=>{ if(!save.ach[a.id] && a.test(save)){ save.ach[a.id] = true; save.coins += 25; got.push(a); } });
+  if(got.length){ LS.set("save", save); if(show){ toast("🏆 " + got.map(a=>a.name).join(", ") + " (+25 🪙)"); sfx.done(); } }
+  return got;
+}
+function renderAch(){
+  const box = $("achList"); box.innerHTML = "";
+  ACH.forEach(a=>{
+    const ok = !!save.ach[a.id], el = document.createElement("div");
+    el.className = "achrow" + (ok ? " ok" : "");
+    el.innerHTML = '<span class="ic">' + (ok ? a.icon : "🔒") + '</span><span><b>' + a.name + '</b><br><small>' + a.desc + '</small></span>';
+    box.appendChild(el);
+  });
+  $("achStats").textContent = save.stats.wins + " solved · " + save.stats.perfect + " perfect · best streak " + save.best + " · " + Object.keys(save.ach).length + "/" + ACH.length + " trophies";
+}
+
+const THEMES = {
+  classic:{ name:"Classic", cost:0,   bg:"#14172b", panel:"#1f2340", colors:COLORS },
+  neon:   { name:"Neon",    cost:120, bg:"#08080f", panel:"#15152a", colors:["#ff2e63","#ff9f1c","#f9f871","#39ff14","#00f5d4","#00b4ff","#7b5cff","#d400ff","#ff61d8","#c98b5a","#b5bdc9","#00e5ff"] },
+  candy:  { name:"Candy",   cost:200, bg:"#2b1b3d", panel:"#3a2552", colors:["#ff6b81","#ffb26b","#ffe66d","#a0e57a","#6ee7c8","#74b9ff","#a29bfe","#e17aff","#ff8fd1","#c8a07a","#cfd6e4","#7fe3ff"] },
+  ocean:  { name:"Ocean",   cost:300, bg:"#06202b", panel:"#0d3342", colors:["#ff7a7a","#ffb454","#ffe27a","#7ee081","#2ed1b3","#4db8ff","#7a8cff","#b78cff","#ff8ec9","#b58863","#a9b8c6","#5ff0ff"] }
+};
+function applyTheme(id){
+  const t = THEMES[id] || THEMES.classic; COLORS = t.colors;
+  const r = document.documentElement.style; r.setProperty("--bg", t.bg); r.setProperty("--panel", t.panel);
+  const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t.bg);
+  if(state.length) render();
+}
+/* Ads are OFF. Flip enabled once a real ad provider is wired in; the rewarded-ad button stays hidden until then. */
+const Ads = { enabled:false, rewarded(cb){ cb(false); } };
+function renderShop(){
+  $("shopCoins").textContent = save.coins;
+  const box = $("shopList"); box.innerHTML = "";
+  Object.keys(THEMES).forEach(id=>{
+    const t = THEMES[id], owned = !!save.owned[id], eq = save.theme === id;
+    const row = document.createElement("div"); row.className = "shoprow";
+    row.innerHTML = '<div class="sw" style="background:' + t.bg + '">' + t.colors.slice(0,6).map(c=>'<i style="background:' + c + '"></i>').join("") + '</div><div class="nm">' + t.name + '</div>';
+    const btn = document.createElement("button");
+    btn.textContent = eq ? "Equipped" : owned ? "Equip" : "🪙 " + t.cost; btn.disabled = eq;
+    btn.onclick = ()=>{
+      if(!owned){
+        if(save.coins < t.cost){ toast("Need " + (t.cost - save.coins) + " more 🪙"); sfx.bad(); return; }
+        save.coins -= t.cost; save.owned[id] = true; checkAch(true);
+      }
+      save.theme = id; LS.set("save", save); applyTheme(id); hud(); renderShop(); sfx.done();
+    };
+    row.appendChild(btn); box.appendChild(row);
+  });
+  $("adBtn").hidden = !Ads.enabled;
+}
+$("mShop").onclick = ()=>{ renderShop(); $("shopDlg").showModal(); };
+$("shopClose").onclick = ()=>$("shopDlg").close();
+$("adBtn").onclick = ()=>Ads.rewarded(ok=>{ if(ok){ save.coins += 30; LS.set("save", save); hud(); renderShop(); } });
+$("mAch").onclick = ()=>{ renderAch(); $("achDlg").showModal(); };
+$("achClose").onclick = ()=>$("achDlg").close();
+
+$("bottle").onclick = ()=>{
+  if(busy || finished) return;
+  if(extraBottles){ toast("Extra bottle already added"); return; }
+  if(save.coins < 30){ toast("Need 30 🪙. Win puzzles to earn coins."); sfx.bad(); return; }
+  save.coins -= 30; LS.set("save", save); extraBottles = 1;
+  state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render();
+};
+
+const REW = [10,15,20,25,30,40,75];
+let drPending = null;
+function checkDailyReward(){
+  const today = dateKey(); if(save.dr.last === today || $("drDlg").open) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const day = (save.dr.last === dateKey(y)) ? (save.dr.day % 7) + 1 : 1;
+  drPending = day;
+  const g = $("drGrid"); g.innerHTML = "";
+  REW.forEach((r,i)=>{ const el = document.createElement("div"); el.className = "dr" + (i+1<day ? " got" : "") + (i+1===day ? " now" : ""); el.innerHTML = "<small>Day " + (i+1) + "</small><b>" + r + "</b>🪙"; g.appendChild(el); });
+  $("drText").textContent = "Day " + day + ": +" + REW[day-1] + " 🪙. Come back tomorrow for more!";
+  $("drDlg").showModal();
+}
+$("drClaim").onclick = ()=>{
+  if(drPending){ save.coins += REW[drPending-1]; save.dr = { last: dateKey(), day: drPending }; drPending = null; LS.set("save", save); hud(); sfx.done(); }
+  $("drDlg").close();
+};
+
+function confetti(){
+  if(REDUCED) return;
+  const host = $("win"), c = document.createElement("canvas"); c.id = "confetti";
+  const ctx = c.getContext && c.getContext("2d"); if(!ctx) return;
+  const W = c.width = window.innerWidth, H = c.height = window.innerHeight; host.appendChild(c);
+  const P = Array.from({length:90}, ()=>({ x:W/2 + (Math.random()-.5)*80, y:H*.35, vx:(Math.random()-.5)*9, vy:-Math.random()*10-3, s:5+Math.random()*6, r:Math.random()*6, vr:(Math.random()-.5)*.4, c:COLORS[(Math.random()*COLORS.length)|0] }));
+  const t0 = performance.now();
+  (function frame(t){
+    ctx.clearRect(0,0,W,H);
+    P.forEach(p=>{ p.vy += .28; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); ctx.restore(); });
+    if(t - t0 < 1800) requestAnimationFrame(frame); else c.remove();
+  })(t0);
+}
 
 /* new day while the app was left open */
 document.addEventListener("visibilitychange", ()=>{
@@ -398,6 +593,7 @@ document.addEventListener("visibilitychange", ()=>{
   const y = new Date(); y.setDate(y.getDate()-1);
   if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
   if(mode==="daily" && puzzleDate !== dateKey() && (moves===0 || finished)){ startGame("daily"); } else render();
+  checkDailyReward();
 });
 
 /* install prompt */
@@ -409,8 +605,10 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 /* service worker */
 if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
+applyTheme(save.theme);
 startGame("daily");
-window.__cq = { nextHint, get state(){ return state; } };
+setTimeout(checkDailyReward, 350);
+window.__cq = { nextHint, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
 })();
 </script>
 </body>
