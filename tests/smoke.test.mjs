@@ -72,31 +72,22 @@ test("daily challenge journey tracker is present and uses saved results", () => 
   assert.match(html, /save\.streak/);
 });
 
-test("liquid pour animation includes source tilt, stream and receiving feedback", () => {
+test("liquid pour animation uses anchored bottle rotation and a gravity-curved SVG stream", () => {
   const html = read("index.html");
   assert.match(html, /\.bottle\.pouring/);
   assert.match(html, /\.bottle\.receiving/);
-  assert.match(html, /@keyframes streamShimmer/);
   assert.match(html, /@keyframes bottle-tilt/);
-  assert.match(html, /@keyframes liquid-flow/);
-  assert.match(html, /tx = 0;\s*ty = 0;/);
-  assert.match(html, /sEl\.style\.transformOrigin = dir > 0 \? "100% 12%" : "0% 12%"/);
-  assert.match(html, /setProperty\("--pour-x", "0px"\)/);
-  assert.match(html, /setProperty\("--pour-y", "0px"\)/);
-  assert.match(html, /@keyframes drop-splash/);
-  assert.match(html, /className = "liquid-drop"/);
-  assert.match(html, /const started = performance\.now\(\), travelMs = 430/);
+  assert.match(html, /transform-origin:50% 50%/);
+  assert.match(html, /const theta = rot\*Math\.PI\/180/);
+  assert.match(html, /getBoundingClientRect\(\) after rotation is only an axis-aligned bounding box/);
+  assert.match(html, /createElementNS\("http:\/\/www\.w3\.org\/2000\/svg","path"\)/);
+  assert.match(html, /const d="M "\+x1\+" "\+y1\+" Q "\+controlX\+" "\+controlY\+" "\+x2\+" "\+y2/);
+  assert.match(html, /const started=performance\.now\(\), travelMs=420/);
   assert.match(html, /function moveDrop\(now\)/);
-  assert.match(html, /const controlY = Math\.max\(y1,y2\)/);
   assert.match(html, /drop\.style\.transform = "translate3d\("/);
   assert.match(html, /will-change:transform,opacity/);
-  assert.doesNotMatch(html, /drop\.style\.left = \(x-5\)/);
-  assert.doesNotMatch(html, /drop\.style\.top = \(y-5\)/);
-  assert.match(html, /stream\.style\.setProperty\("--stream-angle"/);
-  assert.match(html, /stream\.style\.setProperty\("--liquid"/);
-  assert.match(html, /stream\.remove\(\);/);
+  assert.match(html, /stream\.remove\(\); drop\.remove\(\);/);
 });
-
 test("endless progression has explicit difficulty tiers and color milestones", () => {
   const html = read("index.html");
   assert.match(html, /function levelColorCount\(level\)/);
