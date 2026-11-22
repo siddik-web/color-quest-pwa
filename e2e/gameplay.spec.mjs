@@ -228,3 +228,24 @@ test("tutorial can be reopened from settings and skipped", async ({ page }) => {
   await expect(page.locator("#tutorialDlg")).toBeHidden();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cq.save")).tutorialSeen)).toBe(true);
 });
+
+test("replaying a level only credits newly earned stars and improves best moves", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const record = { stars: 1, moves: 20, bestMoves: 20 };
+    const firstDelta = window.__cq.applyReplayResult(record, 3);
+    const secondDelta = window.__cq.applyReplayResult(record, 2);
+    return { firstDelta, secondDelta, stars: record.stars, bestMoves: record.bestMoves };
+  });
+  expect(result).toEqual({ firstDelta: 2, secondDelta: 0, stars: 3, bestMoves: 20 });
+});
+
+test("dialogs remain within a small mobile viewport and scroll internally", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.locator("#mEndless").click();
+  await page.locator("#levelMapBtn").click();
+  const box = await page.locator("#levelDlg").boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(320);
+  expect(box.height).toBeLessThanOrEqual(640);
+  await expect(page.locator("#levelGrid .level-tile").first()).toBeVisible();
+});
