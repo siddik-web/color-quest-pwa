@@ -150,3 +150,39 @@ test("generated starting puzzle is solvable and has a valid par score", async ({
   expect(result.solutionLength).toBeGreaterThan(0);
   expect(result.solved).toBe(true);
 });
+
+test("level map shows unlocked progress and prevents locked-level selection", async ({ page }) => {
+  await page.locator("#mEndless").click();
+  await expect(page.locator("#levelMapBtn")).toBeVisible();
+  await page.locator("#levelMapBtn").click();
+  await expect(page.locator("#levelDlg")).toBeVisible();
+  await expect(page.locator("#levelGrid .level-tile")).toHaveCount(30);
+  await expect(page.locator("#levelGrid .level-tile:not(:disabled)")).toHaveCount(1);
+  await expect(page.locator("#levelGrid .level-tile").nth(1)).toBeDisabled();
+  await page.locator("#levelGrid .level-tile").first().click();
+  await expect(page.locator("#levelDlg")).toBeHidden();
+  await expect(page.locator("#title")).toContainText("Level 1");
+  expect(await page.evaluate(() => window.__cq.selectedLevel)).toBe(1);
+});
+
+test("level map reflects saved unlocks and completed stars", async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem("cq.save", JSON.stringify({
+      level: 4,
+      levelResults: {
+        "1": { stars: 3, moves: 12, bestMoves: 12 },
+        "2": { stars: 2, moves: 16, bestMoves: 16 }
+      },
+      dr: { last: new Date().toISOString().slice(0, 10), day: 1 }
+    }));
+  });
+  await page.reload();
+  await page.locator("#mEndless").click();
+  await page.locator("#levelMapBtn").click();
+  await expect(page.locator("#levelGrid .level-tile:not(:disabled)")).toHaveCount(4);
+  await expect(page.locator("#levelGrid .level-tile.completed")).toHaveCount(2);
+  await expect(page.locator("#levelSummary")).toContainText("Level 4 is unlocked");
+  await page.locator("#levelGrid .level-tile").nth(2).click();
+  await expect(page.locator("#title")).toContainText("Level 3");
+  expect(await page.evaluate(() => window.__cq.selectedLevel)).toBe(3);
+});
