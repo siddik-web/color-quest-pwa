@@ -293,7 +293,7 @@ test("daily challenge modifiers rotate deterministically by date and survive dai
   }));
   await expect(page.locator("#modifierStatus")).not.toBeEmpty();
   if (active.id === "limited-moves") {
-    expect(active.limit).toBe(window.__cq.moveLimitForLevel(1, active.par));
+    expect(active.limit).toBe(await page.evaluate(par => window.__cq.moveLimitForLevel(1, par), active.par));
     await expect(page.locator("#modifierStatus")).toContainText(active.limit + " left");
   } else {
     await expect(page.locator("#board .bottle.frozen")).toHaveCount(1);
