@@ -245,3 +245,69 @@ test("dialogs remain within a small mobile viewport and scroll internally", asyn
   expect(box.height).toBeLessThanOrEqual(640);
   await expect(page.locator("#levelGrid .level-tile").first()).toBeVisible();
 });
+
+
+test("game remains free of horizontal overflow across phone, tablet and desktop widths", async ({ page }) => {
+  for (const width of [320, 375, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.reload();
+    const metrics = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      appWidth: document.querySelector("#app").getBoundingClientRect().width
+    }));
+    expect(metrics.documentWidth, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(metrics.viewportWidth);
+    expect(metrics.appWidth).toBeLessThanOrEqual(width);
+  }
+});
+
+test("reduced-motion preference disables game transition animations", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  const move = await page.evaluate(() => {
+    const state = window.__cq.state;
+    for (let from = 0; from < state.length; from++) {
+      if (!state[from].length) continue;
+      for (let to = 0; to < state.length; to++) {
+        if (from !== to && state[to].length < 4 &&
+          (!state[to].length || state[to][state[to].length - 1] === state[from][state[from].length - 1])) return [from, to];
+      }
+    }
+    return null;
+  });
+  expect(move).not.toBeNull();
+  await page.locator("#board .bottle").nth(move[0]).click();
+  await page.locator("#board .bottle").nth(move[1]).click();
+  await expect(page.locator("#moves")).toContainText("Moves 1");
+  expect(await page.locator(".stream").count()).toBe(0);
+  expect(await page.locator(".bottle.pouring").count()).toBe(0);
+});
+
+test("primary navigation and dialogs run without uncaught JavaScript errors", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  for (const [nav, dialog, close] of [
+    ["#mCal", "#calDlg", "#calClose"],
+    ["#mAch", "#achDlg", "#achClose"],
+    ["#mShop", "#shopDlg", "#shopClose"],
+    ["#mSet", "#setDlg", "#setClose"]
+  ]) {
+    await page.locator(nav).click();
+    await expect(page.locator(dialog)).toBeVisible();
+    await page.locator(close).click();
+    await expect(page.locator(dialog)).toBeHidden();
+  }
+  expect(errors).toEqual([]);
+});
+
+test("interactive controls expose visible keyboard focus", async ({ page }) => {
+  await page.keyboard.press("Tab");
+  const focus = await page.evaluate(() => ({
+    tag: document.activeElement?.tagName,
+    outlineStyle: getComputedStyle(document.activeElement).outlineStyle,
+    outlineWidth: getComputedStyle(document.activeElement).outlineWidth
+  }));
+  expect(focus.tag).toBe("BUTTON");
+  expect(focus.outlineStyle).not.toBe("none");
+  expect(parseFloat(focus.outlineWidth)).toBeGreaterThan(0);
+});
