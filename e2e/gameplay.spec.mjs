@@ -357,8 +357,8 @@ test("source bottle returns to its original board position after pouring", async
     ty: el.style.getPropertyValue("--ty"),
     rot: el.style.getPropertyValue("--rot")
   }));
-  expect(landingOffsets.tx).not.toBe("");
-  expect(landingOffsets.ty).not.toBe("");
+  expect(landingOffsets.tx).toBe("0px");
+  expect(landingOffsets.ty).toBe("0px");
   expect(landingOffsets.rot).not.toBe("");
   await page.waitForTimeout(350);
   const after = await page.locator("#board .bottle").nth(move[0]).boundingBox();
