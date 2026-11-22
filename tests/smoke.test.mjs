@@ -77,6 +77,10 @@ test("liquid pour animation includes source tilt, stream and receiving feedback"
   assert.match(html, /\.bottle\.pouring/);
   assert.match(html, /\.bottle\.receiving/);
   assert.match(html, /@keyframes streamShimmer/);
+  assert.match(html, /@keyframes bottle-tilt/);
+  assert.match(html, /@keyframes liquid-flow/);
+  assert.match(html, /@keyframes drop-splash/);
+  assert.match(html, /className = "liquid-drop"/);
   assert.match(html, /stream\.style\.setProperty\("--liquid"/);
   assert.match(html, /stream\.remove\(\);/);
 });
@@ -124,14 +128,10 @@ test("economy milestones, replay star accounting and responsive dialogs are pres
   assert.match(html, /@media\(max-width:380px\)/);
 });
 
-test("level-specific illustrated board environments and glossy color layers are present", () => {
+test("illustrated level backgrounds are removed and board stays on the solid game theme", () => {
   const html = read("index.html");
-  for (const scene of ["meadow","sunset","ocean","candy","volcano","space","aurora"]) assert.match(html, new RegExp('data-scene="' + scene + '"'));
-  assert.match(html, /function applyLevelScene\(level\)/);
-  assert.match(html, /document\.body\.dataset\.scene/);
-  assert.match(html, /#board:before/);
-  assert.match(html, /#board:after/);
-  assert.match(html, /#board \.seg/);
+  assert.doesNotMatch(html, /data-scene|applyLevelScene|scene-sky|#board:before|#board:after/);
+  assert.match(html, /html,body\{background:var\(--bg\)\}/);
 });
 
 test("background music and sound effects have independent persistent controls", () => {
