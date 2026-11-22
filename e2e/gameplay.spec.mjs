@@ -311,3 +311,20 @@ test("interactive controls expose visible keyboard focus", async ({ page }) => {
   expect(focus.outlineStyle).not.toBe("none");
   expect(parseFloat(focus.outlineWidth)).toBeGreaterThan(0);
 });
+
+
+test("expert puzzle solver preserves bottle identity with double-digit color IDs", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const puzzle = window.__cq.generate("phase-9-expert-regression", 11);
+    const solution = window.__cq.solve(puzzle.bottles, 120000);
+    if (!solution) return { par: puzzle.par, solutionLength: 0, solved: false };
+    const state = puzzle.bottles.map(b => b.slice());
+    for (const [from, to] of solution) {
+      if (!window.__cq.pour(state, from, to)) return { par: puzzle.par, solutionLength: solution.length, solved: false };
+    }
+    return { par: puzzle.par, solutionLength: solution.length, solved: window.__cq.isSolved(state) };
+  });
+  expect(result.par).toBeGreaterThan(0);
+  expect(result.solutionLength).toBeGreaterThan(0);
+  expect(result.solved).toBe(true);
+});
