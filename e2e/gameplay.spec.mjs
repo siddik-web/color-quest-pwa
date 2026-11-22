@@ -220,6 +220,47 @@ test("streak resets after multiple missed days when no shield is available", asy
   expect(await page.evaluate(() => window.__cq.save.streakFreezes)).toBe(0);
 });
 
+test("milestone levels use a frozen reserve that thaws after two legal pours", async ({ page }) => {
+  await page.evaluate(() => window.__cq.startGame("endless", 5));
+  await expect(page.locator("#title")).toContainText("Level 5");
+  await expect(page.locator("#modifierStatus")).toContainText("Frozen Reserve");
+  await expect(page.locator("#modifierStatus")).toContainText("2 pours to thaw");
+  await expect(page.locator("#board .bottle.frozen")).toHaveCount(1);
+
+  const frozenIndex = await page.evaluate(() => window.__cq.frozenBottleIndex());
+  await page.locator("#board .bottle").nth(frozenIndex).click();
+  await expect(page.locator("#moves")).toContainText("Moves 0");
+  await expect(page.locator("#toast")).toContainText("Frozen reserve");
+
+  for (let moveNumber = 1; moveNumber <= 2; moveNumber++) {
+    const move = await page.evaluate((blocked) => {
+      const state = window.__cq.state;
+      for (let from = 0; from < state.length; from++) {
+        if (from === blocked || !state[from].length) continue;
+        const color = state[from][state[from].length - 1];
+        for (let to = 0; to < state.length; to++) {
+          if (to === blocked || from === to || state[to].length >= 4) continue;
+          if (!state[to].length || state[to][state[to].length - 1] === color) return [from, to];
+        }
+      }
+      return null;
+    }, frozenIndex);
+    expect(move).not.toBeNull();
+    await page.locator("#board .bottle").nth(move[0]).click();
+    await page.locator("#board .bottle").nth(move[1]).click();
+    await expect(page.locator("#moves")).toContainText("Moves " + moveNumber);
+  }
+
+  await expect(page.locator("#board .bottle.frozen")).toHaveCount(0);
+  await expect(page.locator("#modifierStatus")).toContainText("thawed");
+});
+
+test("ordinary levels do not enable a special puzzle modifier", async ({ page }) => {
+  await page.evaluate(() => window.__cq.startGame("endless", 4));
+  await expect(page.locator("#modifierStatus")).toBeEmpty();
+  await expect(page.locator("#board .bottle.frozen")).toHaveCount(0);
+});
+
 test("level map shows unlocked progress and prevents locked-level selection", async ({ page }) => {
   await page.locator("#mEndless").click();
   await expect(page.locator("#levelMapBtn")).toBeVisible();
