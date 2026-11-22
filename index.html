@@ -264,6 +264,12 @@ body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24
   <div class="row"><button id="questClose" class="on">Close</button></div>
 </dialog>
 
+<dialog id="challengeFail" aria-labelledby="challengeFailTitle">
+  <h2 id="challengeFailTitle">Move limit reached</h2>
+  <p style="color:var(--muted)">This challenge needs a few fewer pours. Your level progress is safe — try again with a fresh board.</p>
+  <div class="row"><button id="retryChallenge" class="on">Try again</button></div>
+</dialog>
+
 <dialog id="levelDlg">
   <h2>🗺 Level Journey</h2>
   <div id="levelSummary" style="color:var(--muted);font-size:13px"></div>
@@ -479,8 +485,9 @@ function generate(seedStr, nColors){
 /* ---------- game state ---------- */
 let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
 let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null, tutorialStep = 0, activeModifier = null;
-const modifierForLevel = level => level % 5 === 0 ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 } : null;
-const frozenBottleIndex = () => activeModifier && moves < activeModifier.unlockAfter && puzzle ? puzzle.bottles.length-1 : -1;
+const moveLimitForLevel = (level, par) => Math.ceil(par * 1.8) + 2;
+const modifierForLevel = level => level % 10 === 0 ? { id:"limited-moves", name:"Limited Moves", description:"Solve before the move counter runs out" } : level % 5 === 0 ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 } : null;
+const frozenBottleIndex = () => activeModifier?.id === "frozen-reserve" && moves < activeModifier.unlockAfter && puzzle ? puzzle.bottles.length-1 : -1;
 
 const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -515,6 +522,7 @@ function startGame(m, levelOverride=null){
     $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
   puzzle = generate(seedStr, n);
+  if(activeModifier?.id === "limited-moves") activeModifier.moveLimit = moveLimitForLevel(selectedLevel, puzzle.par);
   state = puzzle.bottles.map(b=>b.slice());
   const resumed = restoreDailyProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
@@ -544,7 +552,7 @@ function render(){
   });
   fx = null;
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
-  $("modifierStatus").textContent = activeModifier ? (moves<activeModifier.unlockAfter ? "❄️ "+activeModifier.name+" · "+(activeModifier.unlockAfter-moves)+" pours to thaw" : "✨ "+activeModifier.name+" thawed") : "";
+  $("modifierStatus").textContent = activeModifier?.id === "limited-moves" ? "⏳ Limited Moves · "+Math.max(0,activeModifier.moveLimit-moves)+" left" : activeModifier ? (moves<activeModifier.unlockAfter ? "❄️ "+activeModifier.name+" · "+(activeModifier.unlockAfter-moves)+" pours to thaw" : "✨ "+activeModifier.name+" thawed") : "";
   $("undo").disabled = !history.length;
   hud();
 }
@@ -572,7 +580,9 @@ function doPour(a, b){
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
     trackQuestMove();
-    if(isSolved(state)) win(); else { persistDailyProgress(); if(full) sfx.done(); }
+    if(isSolved(state)) win();
+    else if(activeModifier?.id === "limited-moves" && moves >= activeModifier.moveLimit){ finished = true; $("challengeFail").showModal(); }
+    else { persistDailyProgress(); if(full) sfx.done(); }
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
@@ -674,6 +684,7 @@ function win(){
 }
 
 /* ---------- controls ---------- */
+$("retryChallenge").onclick = ()=>{ $("challengeFail").close(); $("restart").click(); };
 $("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; persistDailyProgress(); render(); };
 $("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; persistDailyProgress(); render(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
@@ -1204,6 +1215,7 @@ window.__cq = {
   syncStreakProtection,
   awardStreakFreeze,
   modifierForLevel,
+  moveLimitForLevel,
   get activeModifier(){ return activeModifier; },
   frozenBottleIndex,
   get generatorFallback(){ const n=4; const b=Array.from({length:n},(_,c)=>Array(CAP).fill(c)); b[0]=[0,0,0]; b[1]=[1,1,1]; b.splice(2,0,[0,1]); b.push([],[]); const sol=solve(b,10000); return !!sol && isSolved(sol.reduce((s,m)=>{pour(s,m[0],m[1]);return s;},b.map(x=>x.slice()))); }
