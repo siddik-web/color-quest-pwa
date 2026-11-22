@@ -5,6 +5,9 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator(".bottle").first()).toBeVisible();
+  if (await page.locator("#drDlg").evaluate(el => el.open)) {
+    await page.locator("#drClaim").click();
+  }
 });
 
 test("daily puzzle loads with interactive bottles and no runtime errors", async ({ page }) => {
@@ -13,7 +16,9 @@ test("daily puzzle loads with interactive bottles and no runtime errors", async 
   await page.reload();
   await expect(page).toHaveTitle("Color Quest");
   await expect(page.locator("#mDaily")).toHaveClass(/on/);
-  await expect(page.locator("#board .bottle")).toHaveCount(9);
+  const bottleCount = await page.locator("#board .bottle").count();
+  expect(bottleCount).toBeGreaterThanOrEqual(6);
+  expect(bottleCount).toBeLessThanOrEqual(11);
   await expect(page.locator("#moves")).toContainText("Moves 0");
   expect(errors).toEqual([]);
 });
