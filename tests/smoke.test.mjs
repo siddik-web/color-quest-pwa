@@ -53,3 +53,21 @@ test("game controls retain unique HTML IDs", () => {
   const ids = [...html.matchAll(/\bid=["']([^"']+)["']/g)].map((match) => match[1]);
   assert.equal(ids.length, new Set(ids).size, "duplicate id attributes found");
 });
+
+test("daily challenge progress is persisted and restored after reload", () => {
+  const html = read("index.html");
+  assert.match(html, /function persistDailyProgress\(\)/);
+  assert.match(html, /function restoreDailyProgress\(\)/);
+  assert.match(html, /history:history\.map/);
+  assert.match(html, /const resumed = restoreDailyProgress\(\)/);
+  assert.match(html, /clearDailyProgress\(\)/);
+});
+
+test("daily challenge journey tracker is present and uses saved results", () => {
+  const html = read("index.html");
+  assert.match(html, /id="journeySummary"/);
+  assert.match(html, /id="journeyPath"/);
+  assert.match(html, /function renderDailyJourney\(\)/);
+  assert.match(html, /save\.won\[k\]/);
+  assert.match(html, /save\.streak/);
+});
