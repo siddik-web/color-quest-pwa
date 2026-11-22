@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await expect(page.locator(".bottle")).toHaveCountGreaterThan(0);
+  await expect(page.locator(".bottle").first()).toBeVisible();
 });
 
 test("daily puzzle loads with interactive bottles and no runtime errors", async ({ page }) => {
