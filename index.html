@@ -28,7 +28,14 @@ button{font:inherit;color:var(--text);background:var(--panel);border:0;border-ra
 button:active{transform:scale(.97)}
 button.on{background:var(--accent);color:#1b1b1b;font-weight:700}
 button:disabled{opacity:.4}
-#info{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);padding:2px 4px 8px}
+#info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:2px 4px 8px}
+#levelMapBtn{padding:6px 10px;font-size:12px;white-space:nowrap}
+#levelGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0;max-height:48vh;overflow:auto}
+.level-tile{min-height:58px;padding:7px 3px;border-radius:12px;background:var(--glass);border:1px solid #ffffff25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:800}
+.level-tile small{font-size:10px;color:var(--muted)}
+.level-tile.current{outline:2px solid var(--accent);background:#ffd24a22}
+.level-tile.locked{opacity:.35;filter:grayscale(1)}
+.level-tile.completed{border-color:#7dffb0}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:22px 14px;justify-content:center;align-content:center;padding:10px 0}
 .bottle{width:var(--bw,48px);height:var(--bh,168px);border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
 .bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
@@ -155,7 +162,7 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
     <button id="mShop" aria-label="Shop"><img class="nav-icon" src="assets/2d/icons/shop.svg" alt=""></button>
     <button id="mSet" aria-label="Settings"><img class="nav-icon" src="assets/2d/icons/settings.svg" alt=""></button>
   </nav>
-  <div id="info"><span id="title"></span><span id="moves"></span></div>
+  <div id="info"><span id="title"></span><span id="moves"></span><button id="levelMapBtn" hidden>🗺 Levels</button></div>
   <div id="board"></div>
   <footer>
     <button id="undo"><img class="action-icon" src="assets/2d/icons/undo.svg" alt="">Undo</button>
@@ -179,6 +186,13 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
   <div id="journeyPath" aria-label="Recent daily challenge journey"></div>
   <div id="cal"></div>
   <div class="row"><button id="calClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="levelDlg">
+  <h2>🗺 Level Journey</h2>
+  <div id="levelSummary" style="color:var(--muted);font-size:13px"></div>
+  <div id="levelGrid" aria-label="Endless level selection"></div>
+  <div class="row"><button id="levelClose" class="on">Close</button></div>
 </dialog>
 
 <dialog id="setDlg">
@@ -236,9 +250,9 @@ const LS = {
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
 const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
-  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
+  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr);
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {};
 
 /* ---------- sound (synthesised with WebAudio, no files) ---------- */
 const sfx = (()=>{
@@ -345,7 +359,7 @@ function generate(seedStr, nColors){
 
 /* ---------- game state ---------- */
 let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
-let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
+let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null;
 
 const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -367,20 +381,22 @@ function restoreDailyProgress(){
   return true;
 }
 
-function startGame(m){
+function startGame(m, levelOverride=null){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
+  selectedLevel = m==="endless" ? Math.max(1, Number(levelOverride || save.level) || 1) : null;
   let n;
   if(m==="daily"){
     const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
     $("title").textContent = WEEKDAYS[d.getDay()] + " · " + dateKey(d);
   } else {
-    const lv = Math.max(1, Number(save.level) || 1); seedStr = "level-" + lv; n = levelColorCount(lv);
+    const lv = selectedLevel; seedStr = "level-" + lv; n = levelColorCount(lv);
     $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
   puzzle = generate(seedStr, n);
   state = puzzle.bottles.map(b=>b.slice());
   const resumed = restoreDailyProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
+  $("levelMapBtn").hidden = m!=="endless";
   render();
   if(resumed) toast("Daily challenge resumed");
   else if(m==="daily") persistDailyProgress();
@@ -477,9 +493,21 @@ function win(){
     } else { fresh = false; note = "Practice run: today's result is already saved."; }
     $("next").textContent = "Done";
   } else {
-    save.stars += st; save.level++;
-    coins = 10 + st*5; xp = 20 + st*10;
-    note = "Next: Level " + save.level; $("next").textContent = "Next level";
+    const completedLevel = selectedLevel || save.level;
+    const previous = save.levelResults[String(completedLevel)];
+    if(!previous){
+      save.levelResults[String(completedLevel)] = { stars:st, moves, bestMoves:moves };
+      save.stars += st;
+      coins = 10 + st*5; xp = 20 + st*10;
+      if(completedLevel === save.level) save.level = completedLevel + 1;
+      note = "Unlocked: Level " + save.level;
+    } else {
+      previous.stars = Math.max(previous.stars || 0, st);
+      previous.bestMoves = Math.min(previous.bestMoves || moves, moves);
+      note = "Replay complete · best " + previous.bestMoves + " moves";
+      fresh = false;
+    }
+    $("next").textContent = "Continue";
   }
   let rewardLine = "";
   if(fresh){
@@ -534,6 +562,23 @@ $("hint").onclick = ()=>{
 };
 $("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
 $("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
+function renderLevelMap(){
+  const grid=$("levelGrid"); grid.innerHTML="";
+  const max=Math.max(30,save.level+5);
+  $("levelSummary").textContent="Level "+save.level+" is unlocked · "+Object.keys(save.levelResults).length+" completed";
+  for(let level=1;level<=max;level++){
+    const result=save.levelResults[String(level)], unlocked=level<=save.level;
+    const tile=document.createElement("button");
+    tile.className="level-tile"+(level===save.level?" current":"")+(result?" completed":"")+(unlocked?"":" locked");
+    tile.disabled=!unlocked;
+    tile.innerHTML="<span>"+(unlocked?level:"🔒")+"</span><small>"+(result?"★".repeat(result.stars||0):unlocked?"Play":"Locked")+"</small>";
+    tile.setAttribute("aria-label",unlocked?"Play level "+level+(result?", completed":""):"Level "+level+" locked");
+    tile.onclick=()=>{ $("levelDlg").close(); startGame("endless",level); };
+    grid.appendChild(tile);
+  }
+}
+$("levelMapBtn").onclick=()=>{ renderLevelMap(); $("levelDlg").showModal(); };
+$("levelClose").onclick=()=>$("levelDlg").close();
 $("next").onclick = ()=>$("win").close();
 $("win").addEventListener("close", ()=>{ if(finished && mode==="endless"){ startGame("endless"); if(save.level > ADS_CONFIG.interstitialEvery && (save.level-1) % ADS_CONFIG.interstitialEvery === 0) Ads.interstitial(); } });
 $("share").onclick = async ()=>{
@@ -807,6 +852,8 @@ setTimeout(checkDailyReward, 350);
 Ads.init();
 window.__cq = {
   nextHint,
+  renderLevelMap,
+  get selectedLevel(){ return selectedLevel; },
   get state(){ return state; },
   get save(){ return save; },
   get puzzle(){ return puzzle; },
