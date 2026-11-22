@@ -101,29 +101,53 @@ dialog{background:linear-gradient(145deg,#354a8d,#1d2b5a);border:2px solid #859f
 dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
 @media(max-width:380px){nav{gap:5px}nav button{font-size:11px;padding:9px 1px}footer{gap:5px}footer button{font-size:11px}}
 </style>
+<style>
+
+/* Final polish: custom vector controls, mobile safe-area and tactile feedback */
+.brand-mascot{width:34px;height:30px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 2px 3px #101a42)}
+.nav-icon{display:block;width:27px;height:27px;margin:0 auto;filter:drop-shadow(0 2px 2px #101a42)}
+.action-icon{width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 1px 1px #14204a)}
+nav button[aria-label]{display:flex;align-items:center;justify-content:center;min-height:48px}
+footer{flex-shrink:0;align-items:stretch;padding:10px 0 max(16px,env(safe-area-inset-bottom))}
+footer button{display:flex;align-items:center;justify-content:center;gap:2px;min-height:46px;border-radius:14px}
+#board{min-height:190px;min-width:0}
+.bottle{isolation:isolate}
+.bottle:after{content:"";position:absolute;z-index:2;left:5px;top:13px;bottom:12px;width:5px;border-radius:99px;background:linear-gradient(180deg,#fff9,#fff1 65%,transparent);pointer-events:none}
+.bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
+.seg{position:relative;overflow:hidden}
+.seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
+.stream{width:7px;filter:drop-shadow(0 0 4px currentColor);border:1px solid #ffffff55}
+#win[open]{animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-offset:3px}
+@media(max-height:700px){#board{min-height:150px;gap:14px 10px}.bottle{max-height:min(var(--bh),27vh)}header{padding-top:7px}nav{margin:4px 0 7px}footer{padding-top:6px}}
+@media(max-width:380px){.brand-mascot{width:29px;height:26px}.action-icon{width:17px;height:17px;margin-right:2px}footer button{font-size:11px}.nav-icon{width:24px;height:24px}}
+@media(prefers-reduced-motion:reduce){#win[open]{animation:none}button:active{transform:none}}
+
+</style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>🎨 Color Quest</h1>
+    <h1><img class="brand-mascot" src="assets/2d/mascot/chameleon.svg" alt="">Color Quest</h1>
     <div class="chips"><span class="chip">🔥 <b id="streak">0</b></span><span class="chip">⭐ <b id="stars">0</b></span><span class="chip">🪙 <b id="coins">0</b></span></div>
   </header>
   <div id="lvrow"><span id="plv"></span><div class="bar"><i id="xpfill"></i></div><span id="xptxt"></span></div>
   <nav>
     <button id="mDaily" class="on">Daily</button>
     <button id="mEndless">Endless</button>
-    <button id="mCal" aria-label="Calendar">📅</button>
-    <button id="mAch" aria-label="Trophies">🏆</button>
-    <button id="mShop" aria-label="Shop">🛍️</button>
-    <button id="mSet" aria-label="Settings">⚙️</button>
+    <button id="mCal" aria-label="Calendar"><img class="nav-icon" src="assets/2d/icons/calendar.svg" alt=""></button>
+    <button id="mAch" aria-label="Trophies"><img class="nav-icon" src="assets/2d/icons/trophy.svg" alt=""></button>
+    <button id="mShop" aria-label="Shop"><img class="nav-icon" src="assets/2d/icons/shop.svg" alt=""></button>
+    <button id="mSet" aria-label="Settings"><img class="nav-icon" src="assets/2d/icons/settings.svg" alt=""></button>
   </nav>
   <div id="info"><span id="title"></span><span id="moves"></span></div>
   <div id="board"></div>
   <footer>
-    <button id="undo">↶ Undo</button>
-    <button id="hint">💡 Hint</button>
-    <button id="restart">⟲ Reset</button>
-    <button id="bottle">🧪 +1 · 30🪙</button>
+    <button id="undo"><img class="action-icon" src="assets/2d/icons/undo.svg" alt="">Undo</button>
+    <button id="hint"><img class="action-icon" src="assets/2d/icons/hint.svg" alt="">Hint</button>
+    <button id="restart"><img class="action-icon" src="assets/2d/icons/reset.svg" alt="">Reset</button>
+    <button id="bottle"><img class="action-icon" src="assets/2d/icons/extra-bottle.svg" alt="">+1 · 30🪙</button>
   </footer>
 </div>
 
