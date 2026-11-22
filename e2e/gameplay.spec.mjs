@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
     localStorage.clear();
     const d = new Date();
     const today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    localStorage.setItem("cq.save", JSON.stringify({ dr: { last: today, day: 1 } }));
+    localStorage.setItem("cq.save", JSON.stringify({ dr: { last: today, day: 1 }, tutorialSeen: true }));
   });
   await page.reload();
   await expect(page.locator(".bottle").first()).toBeVisible();
@@ -199,4 +199,32 @@ test("endless level map fits a narrow mobile viewport", async ({ page }) => {
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
   expect(metrics.dialogWidth).toBeLessThanOrEqual(metrics.clientWidth);
   await expect(page.locator("#levelGrid .level-tile").first()).toBeVisible();
+});
+
+test("first-time player sees the tutorial and can complete all steps", async ({ page }) => {
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem("cq.save"));
+    delete save.tutorialSeen;
+    localStorage.setItem("cq.save", JSON.stringify(save));
+  });
+  await page.reload();
+  await expect(page.locator("#tutorialDlg")).toBeVisible();
+  await expect(page.locator("#tutorialTitle")).toContainText("Welcome to Color Quest");
+  await expect(page.locator("#tutorialProgress i")).toHaveCount(5);
+  for (let step = 0; step < 4; step++) {
+    await page.locator("#tutorialNext").click();
+  }
+  await expect(page.locator("#tutorialTitle")).toContainText("Earn rewards");
+  await page.locator("#tutorialNext").click();
+  await expect(page.locator("#tutorialDlg")).toBeHidden();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cq.save")).tutorialSeen)).toBe(true);
+});
+
+test("tutorial can be reopened from settings and skipped", async ({ page }) => {
+  await page.locator("#mSet").click();
+  await page.locator("#howToBtn").click();
+  await expect(page.locator("#tutorialDlg")).toBeVisible();
+  await page.locator("#tutorialSkip").click();
+  await expect(page.locator("#tutorialDlg")).toBeHidden();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cq.save")).tutorialSeen)).toBe(true);
 });
