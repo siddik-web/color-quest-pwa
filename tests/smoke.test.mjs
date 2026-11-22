@@ -111,5 +111,5 @@ test("first-time tutorial is accessible, skippable and persisted", () => {
 
 test("solver keeps bottle indexes stable while tracking visited states", () => {
   const html = read("index.html");
-  assert.match(html, /const key = s => s\.map\(b=>b\.join\("?"\)\)\.join\("\\|"\);/);
+  assert.ok(html.includes('const key = s => s.map(b=>b.join("")).join("|");'));
 });
