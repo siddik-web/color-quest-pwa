@@ -130,8 +130,8 @@ dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
 
 /* Level-specific illustrated board environments */
 #board{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;margin:2px -4px 0;padding:18px 4px;min-height:210px;background:linear-gradient(180deg,var(--scene-sky,#8bd7ff) 0%,var(--scene-mid,#5e9ed8) 62%,var(--scene-ground,#315b87) 100%);box-shadow:inset 0 1px 0 #ffffff55,inset 0 -18px 35px #07132d35,0 10px 24px #07132d30;transition:background .35s ease}
-#board:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 18%,#fff9 0 1px,transparent 2px),radial-gradient(circle at 78% 24%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 48% 12%,#fff7 0 1px,transparent 2px),radial-gradient(ellipse at 18% 30%,var(--scene-glow,#fff7) 0 5%,transparent 38%),radial-gradient(ellipse at 85% 14%,#ffffff30 0 4%,transparent 28%);background-size:83px 79px,113px 97px,67px 61px,100% 100%,100% 100%;opacity:.9}
-#board:after{content:"";position:absolute;left:-8%;right:-8%;bottom:-18px;height:34%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 18% 100%,var(--scene-hill1,#397b78) 0 35%,transparent 36%),radial-gradient(ellipse at 77% 110%,var(--scene-hill2,#28645f) 0 43%,transparent 44%),linear-gradient(180deg,transparent 0 24%,var(--scene-ground,#315b87) 25%);filter:drop-shadow(0 -5px 10px #14274a25);opacity:.95}
+#board:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 18%,#fff9 0 1px,transparent 2px),radial-gradient(circle at 78% 24%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 48% 12%,#fff7 0 1px,transparent 2px),radial-gradient(ellipse at 18% 30%,var(--scene-glow,#fff7) 0 5%,transparent 38%),radial-gradient(ellipse at 85% 14%,#ffffff30 0 4%,transparent 28%);background-size:83px 79px,113px 97px,67px 61px,100% 100%,100% 100%;opacity:.9;filter:hue-rotate(var(--level-hue,0deg))}
+#board:after{content:"";position:absolute;left:-8%;right:-8%;bottom:-18px;height:34%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 18% 100%,var(--scene-hill1,#397b78) 0 35%,transparent 36%),radial-gradient(ellipse at 77% 110%,var(--scene-hill2,#28645f) 0 43%,transparent 44%),linear-gradient(180deg,transparent 0 24%,var(--scene-ground,#315b87) 25%);filter:drop-shadow(0 -5px 10px #14274a25) hue-rotate(var(--level-hue,0deg));opacity:.95}
 #board .bottle{z-index:1}
 #board .seg{border:1px solid #ffffff35;filter:saturate(1.14) contrast(1.03);box-shadow:inset 0 4px 7px #ffffff70,inset 0 -4px 7px #0003,0 2px 3px #07132d35}
 #board .seg:after{left:7px;right:7px;top:3px;height:5px;background:linear-gradient(90deg,#fff0,#ffffffaa,#fff0)}
@@ -421,6 +421,7 @@ function applyLevelScene(level){
   const n=Math.max(1,Number(level)||1);
   document.body.dataset.scene=mode==="daily"?"meadow":scenes[Math.floor((n-1)/5)%scenes.length];
   document.body.dataset.level=String(n);
+  document.body.style.setProperty("--level-hue", (((n*13)%25)-12)+"deg");
 }
 
 function startGame(m, levelOverride=null){
