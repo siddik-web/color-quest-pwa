@@ -186,3 +186,17 @@ test("level map reflects saved unlocks and completed stars", async ({ page }) =>
   await expect(page.locator("#title")).toContainText("Level 3");
   expect(await page.evaluate(() => window.__cq.selectedLevel)).toBe(3);
 });
+
+test("endless level map fits a narrow mobile viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.locator("#mEndless").click();
+  await page.locator("#levelMapBtn").click();
+  const metrics = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    clientWidth: document.documentElement.clientWidth,
+    dialogWidth: document.querySelector("#levelDlg").getBoundingClientRect().width
+  }));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
+  expect(metrics.dialogWidth).toBeLessThanOrEqual(metrics.clientWidth);
+  await expect(page.locator("#levelGrid .level-tile").first()).toBeVisible();
+});
