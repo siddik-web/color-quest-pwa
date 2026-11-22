@@ -485,21 +485,15 @@ function render(){
     const el = document.createElement("div");
     el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
     b.forEach((c,si)=>{ const s = document.createElement("div"); s.className = "seg" + (fx && fx.to===i && si >= b.length - fx.n ? " fill" : ""); s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
+    if(fx && fx.from===i){
+      el.classList.add("land");
+      el.style.setProperty("--tx",fx.tx+"px");
+      el.style.setProperty("--ty",fx.ty+"px");
+      el.style.setProperty("--rot",fx.rot+"deg");
+    }
     el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(b.length? ", "+b.length+" layers":", empty")); el.addEventListener("click", ()=>tap(i));
     board.appendChild(el);
   });
-  if(fx && fx.landingRect && !REDUCED){
-    const movingBottle = board.children[fx.from];
-    if(movingBottle){
-      const finalRect = movingBottle.getBoundingClientRect();
-      const dx = fx.landingRect.left - finalRect.left;
-      const dy = fx.landingRect.top - finalRect.top;
-      movingBottle.animate([
-        { transform: "translate("+dx+"px,"+dy+"px) rotate("+fx.rot+"deg)" },
-        { transform: "translate(0,0) rotate(0deg)" }
-      ], { duration:260, easing:"cubic-bezier(.2,.8,.2,1)" });
-    }
-  }
   fx = null;
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
   $("undo").disabled = !history.length;
@@ -523,7 +517,7 @@ function doPour(a, b){
   let tx = 0, ty = 0, rot = 0;
   const finish = ()=>{
     const n = pour(state, a, b); moves++; sel = -1;
-    fx = REDUCED ? null : { from:a, landingRect:sEl ? sEl.getBoundingClientRect() : null, rot };
+    fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot };
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
