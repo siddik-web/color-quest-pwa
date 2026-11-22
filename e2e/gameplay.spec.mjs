@@ -102,9 +102,11 @@ test("pour animation tilts the source, streams liquid, and completes the move", 
   await page.locator("#board .bottle").nth(move[1]).click();
   await expect(page.locator(".bottle.pouring")).toHaveCount(1);
   await expect(page.locator(".stream")).toHaveCount(1, { timeout: 2000 });
+  await expect(page.locator(".liquid-drop")).toHaveCount(1);
   await expect(page.locator(".bottle.receiving")).toHaveCount(1);
   await expect(page.locator("#moves")).toContainText("Moves 1", { timeout: 3000 });
   await expect(page.locator(".stream")).toHaveCount(0);
+  await expect(page.locator(".liquid-drop")).toHaveCount(0);
   await expect(page.locator(".bottle.pouring")).toHaveCount(0);
 });
 
