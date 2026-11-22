@@ -608,13 +608,7 @@ function win(){
       const prev = new Date(k+"T12:00:00"); prev.setDate(prev.getDate()-1);
       save.streak = (save.streakGraceDate === k) ? (Number(save.streakGraceBase)||0)+1 : (save.last === dateKey(prev)) ? save.streak+1 : 1;
       save.last = k; save.streakGraceDate = null; save.streakGraceBase = 0; save.best = Math.max(save.best, save.streak);
-      if(save.streak>0 && save.streak%7===0){
-        const milestone=String(save.streak);
-        if(!save.streakFreezeMilestones[milestone]){
-          save.streakFreezeMilestones[milestone]=true;
-          if(save.streakFreezes<2){save.streakFreezes++;note="7-day milestone! You earned a Streak Shield 🛡️ · "+save.streak+" day streak";}
-        }
-      }
+      if(awardStreakFreeze(save.streak)) note="7-day milestone! You earned a Streak Shield 🛡️ · "+save.streak+" day streak";
       save.won[k] = { moves, stars: st };
       save.stats.daily++;
       coins = 25 + st*10 + Math.min(save.streak,7)*5; xp = 40 + st*15;
@@ -827,6 +821,17 @@ function syncStreakProtection(today=dateKey()){
   }
 }
 syncStreakProtection();
+
+function awardStreakFreeze(streak){
+  if(streak<=0 || streak%7!==0) return false;
+  const milestone=String(streak);
+  if(save.streakFreezeMilestones[milestone]) return false;
+  save.streakFreezeMilestones[milestone]=true;
+  if(save.streakFreezes>=2) return false;
+  save.streakFreezes++;
+  LS.set("save",save);
+  return true;
+}
 
 /* ---------- progression: coins, XP, trophies, themes, daily reward ---------- */
 const TITLES = ["Rookie","Mixer","Sorter","Pourer","Alchemist","Mastermind","Legend"];
@@ -1186,6 +1191,7 @@ window.__cq = {
   renderQuests,
   get quests(){ ensureQuestState(); return save.quests; },
   syncStreakProtection,
+  awardStreakFreeze,
   get generatorFallback(){ const n=4; const b=Array.from({length:n},(_,c)=>Array(CAP).fill(c)); b[0]=[0,0,0]; b[1]=[1,1,1]; b.splice(2,0,[0,1]); b.push([],[]); const sol=solve(b,10000); return !!sol && isSolved(sol.reduce((s,m)=>{pour(s,m[0],m[1]);return s;},b.map(x=>x.slice()))); }
 };
 })();
