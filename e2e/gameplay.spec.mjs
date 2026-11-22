@@ -526,3 +526,26 @@ test("source bottle returns to its original board position after pouring", async
   const transform = await page.locator("#board .bottle").nth(move[0]).evaluate(el => getComputedStyle(el).transform);
   expect(transform).toBe("none");
 });
+
+test("daily calendar previews the next eight modifiers and summarizes completed modifier history", async ({ page }) => {
+  await page.evaluate(() => {
+    const today = new Date();
+    const key = date => date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+    const previous = key(yesterday);
+    const modifier = window.__cq.dailyModifierForDate(previous);
+    window.__cq.save.won[previous] = { moves: 12, stars: 3 };
+    localStorage.setItem("cq.save", JSON.stringify(window.__cq.save));
+  });
+  await page.locator("#mCal").click();
+  await expect(page.locator("#modifierForecast .forecast-day")).toHaveCount(8);
+  await expect(page.locator("#modifierForecast .forecast-day.today")).toHaveCount(1);
+  await expect(page.locator("#modifierForecast .forecast-day.done")).toHaveCount(0);
+  await expect(page.locator("#modifierHistory")).toContainText("Frozen Reserve:");
+  await expect(page.locator("#modifierHistory")).toContainText("Limited Moves:");
+  const forecast = await page.locator("#modifierForecast .forecast-day").evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")));
+  expect(forecast).toHaveLength(8);
+  expect(forecast[0]).toContain("Today");
+  expect(forecast[1]).toContain("Limited Moves");
+  expect(forecast[1]).toContain("Frozen Reserve");
+});
