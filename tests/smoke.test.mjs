@@ -182,6 +182,16 @@ test("streak shields are persisted, capped, and consumed on a single missed day"
   assert.match(read("sw.js"), /color-quest-v29/);
 });
 
+test("frozen reserve modifier is limited to milestone levels and unlocks after two pours", () => {
+  const html = read("index.html");
+  assert.match(html, /function modifierForLevel|const modifierForLevel/);
+  assert.match(html, /level % 5 === 0/);
+  assert.match(html, /unlockAfter:2/);
+  assert.match(html, /function frozenBottleIndex|const frozenBottleIndex/);
+  assert.match(html, /id="modifierStatus"/);
+  assert.match(html, /classList\.add\("frozen"\)/);
+});
+
 test("puzzle generation fallback is a verified solvable board, never an arbitrary shuffled dead end", () => {
   const html = read("index.html");
   assert.match(html, /Guaranteed-solvable fallback/);
