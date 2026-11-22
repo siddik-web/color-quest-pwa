@@ -13,7 +13,7 @@ test("inline game JavaScript parses without syntax errors", () => {
 
   assert.ok(scripts.length > 0, "expected at least one inline game script");
   scripts.forEach((source, index) => {
-    assert.doesNotThrow(() => new vm.Script(source, { filename: \`index-inline-\${index}.js\` }));
+    assert.doesNotThrow(() => new vm.Script(source, { filename: "index-inline-" + index + ".js" }));
   });
 });
 
@@ -23,7 +23,7 @@ test("all referenced custom SVG assets exist", () => {
     .map((match) => match[1]);
 
   assert.ok(references.length > 0, "expected HTML to reference custom artwork");
-  references.forEach((path) => assert.ok(existsSync(path), \`missing HTML asset: \${path}\`));
+  references.forEach((path) => assert.ok(existsSync(path), "missing HTML asset: " + path));
 });
 
 test("every local service-worker precache entry exists", () => {
@@ -33,7 +33,7 @@ test("every local service-worker precache entry exists", () => {
     .filter((path) => path !== "");
 
   assert.ok(entries.includes("index.html"), "index.html must be precached");
-  entries.forEach((path) => assert.ok(existsSync(path), \`missing precache asset: \${path}\`));
+  entries.forEach((path) => assert.ok(existsSync(path), "missing precache asset: " + path));
 });
 
 test("native web copy includes the complete assets directory", () => {
