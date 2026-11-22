@@ -490,6 +490,13 @@ function doPour(a, b){
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
+function applyReplayResult(previous, earned){
+  const oldStars=Number(previous.stars)||0;
+  const newStars=Math.max(oldStars,earned);
+  previous.stars=newStars;
+  previous.bestMoves=Math.min(Number(previous.bestMoves)||previous.moves||Infinity,previous.moves||Infinity);
+  return newStars-oldStars;
+}
 
 function win(){
   finished = true;
@@ -525,13 +532,12 @@ function win(){
         note = "Level " + completedLevel + " milestone! +" + bonus + " bonus coins · Unlocked: Level " + save.level;
       } else note = "Unlocked: Level " + save.level;
     } else {
-      const oldStars = Number(previous.stars) || 0;
-      const improvedStars = Math.max(oldStars, st);
-      save.stars += improvedStars - oldStars;
-      previous.stars = improvedStars;
-      previous.bestMoves = Math.min(previous.bestMoves || moves, moves);
+      previous.moves = moves;
+      const starDelta = applyReplayResult(previous, st);
+      previous.bestMoves = Math.min(Number(previous.bestMoves)||moves, moves);
+      save.stars += starDelta;
       note = "Replay complete · best " + previous.bestMoves + " moves";
-      if(improvedStars > oldStars) note += " · +" + (improvedStars-oldStars) + " star" + (improvedStars-oldStars===1?"":"s");
+      if(starDelta > 0) note += " · +" + starDelta + " star" + (starDelta===1?"":"s");
       fresh = false;
     }
     $("next").textContent = "Continue";
@@ -919,6 +925,7 @@ window.__cq = {
   openTutorial,
   get tutorialStep(){ return tutorialStep; },
   starsFor,
+  applyReplayResult,
   get economyMilestones(){ return save.economyMilestones; }
 };
 })();
