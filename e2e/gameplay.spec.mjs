@@ -84,3 +84,26 @@ test("mobile layout has no horizontal overflow and keeps game actions visible", 
   await expect(page.locator("#undo")).toBeVisible();
   await expect(page.locator("#hint")).toBeVisible();
 });
+test("pour animation tilts the source, streams liquid, and completes the move", async ({ page }) => {
+  const move = await page.evaluate(() => {
+    const s = window.__cq.state;
+    for (let from = 0; from < s.length; from++) {
+      if (!s[from].length) continue;
+      const color = s[from][s[from].length - 1];
+      for (let to = 0; to < s.length; to++) {
+        if (from === to || s[to].length >= 4) continue;
+        if (!s[to].length || s[to][s[to].length - 1] === color) return [from, to];
+      }
+    }
+    return null;
+  });
+  expect(move).not.toBeNull();
+  await page.locator("#board .bottle").nth(move[0]).click();
+  await page.locator("#board .bottle").nth(move[1]).click();
+  await expect(page.locator(".bottle.pouring")).toHaveCount(1);
+  await expect(page.locator(".stream")).toHaveCount(1, { timeout: 2000 });
+  await expect(page.locator(".bottle.receiving")).toHaveCount(1);
+  await expect(page.locator("#moves")).toContainText("Moves 1", { timeout: 3000 });
+  await expect(page.locator(".stream")).toHaveCount(0);
+  await expect(page.locator(".bottle.pouring")).toHaveCount(0);
+});
