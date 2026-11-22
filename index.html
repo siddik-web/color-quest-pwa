@@ -52,6 +52,14 @@ dialog h2{margin:0 0 6px}
 .stars{font-size:36px;letter-spacing:4px;margin:8px 0}
 dialog .row{display:flex;gap:8px;margin-top:14px}
 dialog .row button{flex:1}
+#journeySummary{margin:8px 0;padding:10px;border-radius:12px;background:var(--glass);font-size:13px;font-weight:700;color:#e7eeff}
+#journeyPath{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 14px}
+.journey-day{min-width:0;padding:7px 2px;border-radius:9px;background:var(--glass);text-align:center;font-size:10px;color:var(--muted)}
+.journey-day b{display:block;font-size:15px;color:var(--text);margin:3px 0}
+.journey-day.done{background:#245d4a;color:#b9ffd4}
+.journey-day.done b{color:#b9ffd4}
+.journey-day.today{outline:2px solid var(--accent)}
+.journey-day.missed{opacity:.45}
 #cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0;font-size:12px}
 #cal div{aspect-ratio:1;border-radius:6px;background:var(--glass);display:flex;align-items:center;justify-content:center;color:var(--muted)}
 #cal div.won{background:#4cd98a;color:#0b2a1a;font-weight:700}
@@ -161,6 +169,8 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
 
 <dialog id="calDlg">
   <h2 id="calTitle"></h2>
+  <div id="journeySummary"></div>
+  <div id="journeyPath" aria-label="Recent daily challenge journey"></div>
   <div id="cal"></div>
   <div class="row"><button id="calClose" class="on">Close</button></div>
 </dialog>
@@ -327,6 +337,22 @@ const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"),1600); }
 
+function dailyProgressKey(day=puzzleDate){ return "daily-progress-" + day; }
+function persistDailyProgress(){
+  if(mode!=="daily" || !puzzleDate || finished || save.won[puzzleDate]) return;
+  LS.set(dailyProgressKey(), { version:1, state:state.map(b=>b.slice()), moves, history:history.map(h=>h.map(b=>b.slice())), hintsUsed, extraBottles, hintPaid, updatedAt:Date.now() });
+}
+function clearDailyProgress(day=puzzleDate){ try{ localStorage.removeItem("cq."+dailyProgressKey(day)); }catch(e){} }
+function restoreDailyProgress(){
+  if(mode!=="daily" || save.won[puzzleDate]) return false;
+  const p=LS.get(dailyProgressKey(),null);
+  if(!p || p.version!==1 || !Array.isArray(p.state) || p.state.length!==puzzle.bottles.length+(p.extraBottles?1:0) || !p.state.every(b=>Array.isArray(b)&&b.length<=CAP&&b.every(c=>Number.isInteger(c)&&c>=0&&c<COLORS.length)) || !Number.isInteger(p.moves)||p.moves<0) return false;
+  state=p.state.map(b=>b.slice()); moves=p.moves;
+  history=Array.isArray(p.history)?p.history.filter(h=>Array.isArray(h)&&h.length===puzzle.bottles.length+(p.extraBottles?1:0)&&h.every(b=>Array.isArray(b)&&b.length<=CAP&&b.every(c=>Number.isInteger(c)&&c>=0&&c<COLORS.length))).map(h=>h.map(b=>b.slice())):[];
+  hintsUsed=Number.isInteger(p.hintsUsed)&&p.hintsUsed>=0?p.hintsUsed:0; extraBottles=p.extraBottles?1:0; hintPaid=typeof p.hintPaid==="string"?p.hintPaid:"";
+  return true;
+}
+
 function startGame(m){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
   let n;
@@ -339,8 +365,11 @@ function startGame(m){
   }
   puzzle = generate(seedStr, n);
   state = puzzle.bottles.map(b=>b.slice());
+  const resumed = restoreDailyProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
   render();
+  if(resumed) toast("Daily challenge resumed");
+  else if(m==="daily") persistDailyProgress();
 }
 
 function render(){
@@ -382,7 +411,7 @@ function doPour(a, b){
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
-    if(isSolved(state)) win(); else if(full) sfx.done();
+    if(isSolved(state)) win(); else { persistDailyProgress(); if(full) sfx.done(); }
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
@@ -441,7 +470,7 @@ function win(){
     const got = checkAch(false);
     if(got.length) note += "<br>🏆 " + got.map(x=>x.icon+" "+x.name).join(", ") + " (+" + (got.length*25) + " 🪙)";
   }
-  LS.set("save", save); render();
+  LS.set("save", save); clearDailyProgress(); render();
   $("winTitle").textContent = st===3 ? "Perfect!" : "Solved!";
   $("winStars").textContent = "⭐".repeat(st) + "☆".repeat(3-st);
   $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")" + rewardLine + "<br>" + note;
@@ -453,8 +482,8 @@ function win(){
 }
 
 /* ---------- controls ---------- */
-$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; persistDailyProgress(); render(); };
+$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; persistDailyProgress(); render(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
 let plan = null;
 const exactKey = st => st.map(b=>b.join("")).join("|");
@@ -476,6 +505,7 @@ $("hint").onclick = ()=>{
   if(cost && save.coins < cost){ offerAd("Need 5 🪙 for another hint."); return; }
   if(cost){ save.coins -= cost; LS.set("save", save); }
   if(hintPaid !== k){ hintsUsed++; hintPaid = k; }
+  persistDailyProgress();
   const [i,j] = m; sel = i; render();
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
@@ -489,12 +519,30 @@ $("share").onclick = async ()=>{
   try{ if(NATIVE && window.CQNative) await window.CQNative.Share.share({ text }); else if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast("Copied!"); } }catch(e){}
 };
 
+function renderDailyJourney(){
+  const today=dateKey(), base=new Date(today+"T12:00:00");
+  const path=$("journeyPath"); path.innerHTML="";
+  let completed=0;
+  for(let offset=6;offset>=0;offset--){
+    const d=new Date(base); d.setDate(d.getDate()-offset); const k=dateKey(d), result=save.won[k];
+    if(result) completed++;
+    const el=document.createElement("div");
+    el.className="journey-day"+(result?" done":"")+(k===today?" today":"")+(k<today&&!result?" missed":"");
+    const status=result ? "★".repeat(result.stars||0) : k===today ? (LS.get(dailyProgressKey(k),null)?"↻":"Today") : "—";
+    el.innerHTML="<small>"+d.toLocaleDateString(undefined,{weekday:"short"})+"</small><b>"+d.getDate()+"</b><span>"+status+"</span>";
+    el.title=result ? k+" · "+result.moves+" moves · "+result.stars+" stars" : k===today ? "Today's challenge" : k;
+    path.appendChild(el);
+  }
+  $("journeySummary").textContent=save.streak+" day streak 🔥 · "+Object.keys(save.won).length+" daily challenges completed · last 7 days: "+completed+"/7";
+}
+
 /* calendar */
 $("mCal").onclick = ()=>{
   const d = new Date(), y = d.getFullYear(), m = d.getMonth();
   $("calTitle").textContent = d.toLocaleString(undefined,{month:"long",year:"numeric"});
   const cal = $("cal"); cal.innerHTML = "";
   const first = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
+  renderDailyJourney();
   for(let i=0;i<first;i++) cal.appendChild(document.createElement("div"));
   for(let day=1; day<=days; day++){
     const k = dateKey(new Date(y,m,day)), el = document.createElement("div");
@@ -678,7 +726,7 @@ $("bottle").onclick = ()=>{
   if(extraBottles){ toast("Extra bottle already added"); return; }
   if(save.coins < 30){ offerAd("Need 30 🪙 for an extra bottle."); return; }
   save.coins -= 30; LS.set("save", save); extraBottles = 1;
-  state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render();
+  state.push([]); history.forEach(h=>h.push([])); plan = null; persistDailyProgress(); sfx.done(); render();
 };
 
 const REW = [10,15,20,25,30,40,75];
