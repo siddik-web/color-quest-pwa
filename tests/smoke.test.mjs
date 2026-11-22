@@ -146,3 +146,13 @@ test("background music and sound effects have independent persistent controls", 
   assert.match(html, /document\.addEventListener\("pointerdown"/);
   assert.match(html, /Background music:/);
 });
+
+
+test("bottles use translucent glass styling with polished rims and liquid depth", () => {
+  const html = read("index.html");
+  assert.match(html, /Optical glass bottle/);
+  assert.match(html, /rgba\(226,245,255/);
+  assert.match(html, /linear-gradient\(180deg,#ffffff 0%,#eaf7ff/);
+  assert.match(html, /inset 0 -4px 6px rgba\(0,0,0,.22\)/);
+  assert.match(html, /rgba\(255,255,255,.92\)/);
+});
