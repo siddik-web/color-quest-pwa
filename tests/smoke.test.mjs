@@ -177,7 +177,7 @@ test("streak shields are persisted, capped, and consumed on a single missed day"
   assert.match(html, /function syncStreakProtection\(/);
   assert.match(html, /function awardStreakFreeze\(streak\)/);
   assert.match(html, /save\.streakGraceDate === k/);
-  assert.match(html, /if\(save\.streakFreezes<2\)/);
+  assert.match(html, /if\\(save\\.streakFreezes>=2\\) return false/));
   assert.match(html, /id="streakFreeze"/);
   assert.match(html, /color-quest-v29/);
 });
