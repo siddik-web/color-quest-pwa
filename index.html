@@ -127,6 +127,24 @@ dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
 </style>
 <style>
 
+
+/* Level-specific illustrated board environments */
+#board{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;margin:2px -4px 0;padding:18px 4px;min-height:210px;background:linear-gradient(180deg,var(--scene-sky,#8bd7ff) 0%,var(--scene-mid,#5e9ed8) 62%,var(--scene-ground,#315b87) 100%);box-shadow:inset 0 1px 0 #ffffff55,inset 0 -18px 35px #07132d35,0 10px 24px #07132d30;transition:background .35s ease}
+#board:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 18%,#fff9 0 1px,transparent 2px),radial-gradient(circle at 78% 24%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 48% 12%,#fff7 0 1px,transparent 2px),radial-gradient(ellipse at 18% 30%,var(--scene-glow,#fff7) 0 5%,transparent 38%),radial-gradient(ellipse at 85% 14%,#ffffff30 0 4%,transparent 28%);background-size:83px 79px,113px 97px,67px 61px,100% 100%,100% 100%;opacity:.9}
+#board:after{content:"";position:absolute;left:-8%;right:-8%;bottom:-18px;height:34%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 18% 100%,var(--scene-hill1,#397b78) 0 35%,transparent 36%),radial-gradient(ellipse at 77% 110%,var(--scene-hill2,#28645f) 0 43%,transparent 44%),linear-gradient(180deg,transparent 0 24%,var(--scene-ground,#315b87) 25%);filter:drop-shadow(0 -5px 10px #14274a25);opacity:.95}
+#board .bottle{z-index:1}
+#board .seg{border:1px solid #ffffff35;filter:saturate(1.14) contrast(1.03);box-shadow:inset 0 4px 7px #ffffff70,inset 0 -4px 7px #0003,0 2px 3px #07132d35}
+#board .seg:after{left:7px;right:7px;top:3px;height:5px;background:linear-gradient(90deg,#fff0,#ffffffaa,#fff0)}
+body[data-scene="meadow"]{--scene-sky:#8de1ff;--scene-mid:#6cc5d9;--scene-ground:#398d83;--scene-hill1:#6fbd77;--scene-hill2:#398b70;--scene-glow:#fff5a8}
+body[data-scene="sunset"]{--scene-sky:#ffb18d;--scene-mid:#d978a0;--scene-ground:#76518e;--scene-hill1:#a65d83;--scene-hill2:#634577;--scene-glow:#ffe3a0}
+body[data-scene="ocean"]{--scene-sky:#58d4e8;--scene-mid:#258eb9;--scene-ground:#155078;--scene-hill1:#2b9d9d;--scene-hill2:#17677f;--scene-glow:#b5ffff}
+body[data-scene="candy"]{--scene-sky:#f6b8ef;--scene-mid:#a88bea;--scene-ground:#6855ad;--scene-hill1:#d17fc5;--scene-hill2:#8069c8;--scene-glow:#fff0ff}
+body[data-scene="volcano"]{--scene-sky:#ff986e;--scene-mid:#b94c65;--scene-ground:#512e56;--scene-hill1:#8d405b;--scene-hill2:#4d304f;--scene-glow:#ffd28a}
+body[data-scene="space"]{--scene-sky:#27366f;--scene-mid:#242b59;--scene-ground:#171c3d;--scene-hill1:#414a83;--scene-hill2:#292e60;--scene-glow:#a7baff}
+body[data-scene="aurora"]{--scene-sky:#4c9a9e;--scene-mid:#315c88;--scene-ground:#202e59;--scene-hill1:#387d79;--scene-hill2:#294c73;--scene-glow:#a4ffd9}
+@media(max-width:380px){#board{border-radius:22px;padding:12px 2px;min-height:185px}}
+@media(prefers-reduced-motion:reduce){#board{transition:none}}
+
 /* Final polish: custom vector controls, mobile safe-area and tactile feedback */
 .brand-mascot{width:34px;height:30px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 2px 3px #101a42)}
 .nav-icon{display:block;width:27px;height:27px;margin:0 auto;filter:drop-shadow(0 2px 2px #101a42)}
@@ -398,6 +416,13 @@ function restoreDailyProgress(){
   return true;
 }
 
+function applyLevelScene(level){
+  const scenes=["meadow","sunset","ocean","candy","volcano","space","aurora"];
+  const n=Math.max(1,Number(level)||1);
+  document.body.dataset.scene=mode==="daily"?"meadow":scenes[Math.floor((n-1)/5)%scenes.length];
+  document.body.dataset.level=String(n);
+}
+
 function startGame(m, levelOverride=null){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
   selectedLevel = m==="endless" ? Math.max(1, Number(levelOverride || save.level) || 1) : null;
@@ -409,6 +434,7 @@ function startGame(m, levelOverride=null){
     const lv = selectedLevel; seedStr = "level-" + lv; n = levelColorCount(lv);
     $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
+  applyLevelScene(selectedLevel || 1);
   puzzle = generate(seedStr, n);
   state = puzzle.bottles.map(b=>b.slice());
   const resumed = restoreDailyProgress();
