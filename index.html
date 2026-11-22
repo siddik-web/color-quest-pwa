@@ -807,7 +807,9 @@ const ACH = [
   { id:"l10",   icon:"🚀", name:"Level 10",       desc:"Reach Endless level 10",             test:s=>s.level>=10 },
   { id:"l25",   icon:"🛰️", name:"Level 25",       desc:"Reach Endless level 25",             test:s=>s.level>=25 },
   { id:"rich",  icon:"💰", name:"Piggy Bank",     desc:"Hold 500 coins",                     test:s=>s.coins>=500 },
-  { id:"coll",  icon:"🎨", name:"Collector",      desc:"Own every theme",                    test:s=>Object.keys(s.owned).length>=Object.keys(THEMES).length }
+  { id:"coll",  icon:"🎨", name:"Collector",      desc:"Own every theme",                    test:s=>Object.keys(s.owned).length>=Object.keys(THEMES).length },
+  { id:"style5",icon:"🪄",name:"Style Explorer",desc:"Collect 5 cosmetic items",test:s=>Object.keys(s.ownedCosmetics||{}).length>=5 },
+  { id:"style8",icon:"💎",name:"Master Collector",desc:"Collect all 8 cosmetic items",test:s=>Object.keys(s.ownedCosmetics||{}).length>=8 }
 ];
 function checkAch(show){
   const got = [];
@@ -952,13 +954,9 @@ function renderShop(){
     };
     row.appendChild(btn); box.appendChild(row);
   });
-  heading("Bottle finishes");
-  heading("Board environments");
-  heading("Pour effects");
   Object.entries(COSMETICS).forEach(([category,items])=>{
     const title=category==="bottle"?"Bottle finishes":category==="board"?"Board environments":"Pour effects";
-    const section=box.lastElementChild;
-    section.textContent=title;
+    heading(title);
     items.forEach(item=>{
       const owned=!!save.ownedCosmetics[item.id], equipped=save.equippedCosmetics[category]===item.id;
       const row=document.createElement("div");row.className="cosmetic-row";
@@ -972,6 +970,7 @@ function renderShop(){
         if(!owned){
           if(save.coins<item.cost){toast("Need "+(item.cost-save.coins)+" more 🪙");sfx.bad();return;}
           save.coins-=item.cost;save.ownedCosmetics[item.id]=true;
+          checkAch(true);
         }
         save.equippedCosmetics[category]=item.id;
         LS.set("save",save);applyCosmetics();hud();renderShop();sfx.done();
