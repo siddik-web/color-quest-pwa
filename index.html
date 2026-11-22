@@ -31,6 +31,13 @@ button:disabled{opacity:.4}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:22px 14px;justify-content:center;align-content:center;padding:10px 0}
 .bottle{width:48px;height:168px;border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
 .bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
+.bottle.land{animation:land .26s ease-out;z-index:5}
+@keyframes land{from{transform:translate(var(--tx),var(--ty)) rotate(var(--rot))}to{transform:none}}
+.seg.fill{animation:fillIn .3s ease-out;transform-origin:bottom}
+@keyframes fillIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.stream{position:fixed;width:6px;border-radius:3px;transform-origin:top;animation:streamIn .22s ease-out forwards;z-index:4;pointer-events:none}
+@keyframes streamIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){.bottle.land,.seg.fill,.stream,.bottle.sel{animation:none}}
 @keyframes lift{from{transform:translateY(0)}to{transform:translateY(-18px)}}
 .bottle.done{border-color:#7dffb0;box-shadow:0 0 12px #7dffb066}
 .seg{flex:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:rgba(0,0,0,.65)}
@@ -89,6 +96,7 @@ dialog .row button{flex:1}
 
 <dialog id="setDlg">
   <h2>Settings</h2>
+  <div class="row"><button id="sndBtn">Sound: On</button></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
@@ -111,6 +119,45 @@ const LS = {
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
 let save = LS.get("save", { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false });
+
+/* ---------- sound (synthesised with WebAudio, no files) ---------- */
+const sfx = (()=>{
+  let ctx = null, master = null;
+  const on = ()=> save.snd !== false;
+  function init(){
+    if(ctx) return true;
+    try{ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
+      ctx = new AC(); master = ctx.createGain(); master.gain.value = .28; master.connect(ctx.destination); }catch(e){ return false; }
+    return true;
+  }
+  function ready(){ if(!on() || !init()) return false; if(ctx.state === "suspended") ctx.resume(); return true; }
+  function tone(f, t0, dur, type, vol, f2){
+    const now = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, now + t0);
+    if(f2) o.frequency.exponentialRampToValueAtTime(f2, now + t0 + dur);
+    g.gain.setValueAtTime(.0001, now + t0); g.gain.exponentialRampToValueAtTime(vol, now + t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, now + t0 + dur);
+    o.connect(g); g.connect(master); o.start(now + t0); o.stop(now + t0 + dur + .02);
+  }
+  function pour(){
+    if(!ready()) return;
+    const dur = .55, len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
+    bp.frequency.setValueAtTime(500, ctx.currentTime); bp.frequency.linearRampToValueAtTime(1400, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(.55, ctx.currentTime + .12); g.gain.linearRampToValueAtTime(.0001, ctx.currentTime + dur);
+    src.connect(bp); bp.connect(g); g.connect(master); src.start();
+  }
+  return {
+    select(){ if(ready()) tone(620, 0, .07, "sine", .35); },
+    bad(){ if(ready()) tone(170, 0, .12, "square", .18, 110); },
+    undo(){ if(ready()) tone(420, 0, .09, "triangle", .3, 260); },
+    pour,
+    done(){ if(!ready()) return; tone(880, 0, .18, "sine", .3); tone(1320, .09, .25, "sine", .28); },
+    win(){ if(!ready()) return; [523.25, 659.25, 783.99, 1046.5].forEach((f,k)=>tone(f, k*.11, .3, "triangle", .35)); }
+  };
+})();
+const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /* ---------- seeded RNG ---------- */
 function hash(str){ let h = 1779033703 ^ str.length; for(let i=0;i<str.length;i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h<<13 | h>>>19; } return h>>>0; }
@@ -169,6 +216,7 @@ function generate(seedStr, nColors){
 }
 
 /* ---------- game state ---------- */
+let busy = false, fx = null;
 let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
 
 const $ = id => document.getElementById(id);
@@ -197,27 +245,58 @@ function render(){
   state.forEach((b,i)=>{
     const el = document.createElement("div");
     el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
-    b.forEach(c=>{ const s = document.createElement("div"); s.className="seg"; s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
+    b.forEach((c,si)=>{ const s = document.createElement("div"); s.className = "seg" + (fx && fx.to===i && si >= b.length - fx.n ? " fill" : ""); s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
+    if(fx && fx.from===i){ el.classList.add("land"); el.style.setProperty("--tx", fx.tx+"px"); el.style.setProperty("--ty", fx.ty+"px"); el.style.setProperty("--rot", fx.rot+"deg"); }
     el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(b.length? ", "+b.length+" layers":", empty")); el.addEventListener("click", ()=>tap(i));
     board.appendChild(el);
   });
+  fx = null;
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
   $("undo").disabled = !history.length;
   $("streak").textContent = save.streak; $("stars").textContent = save.stars;
 }
 
 function tap(i){
-  if(finished) return;
-  if(sel === -1){ if(state[i].length) { sel = i; render(); } return; }
-  if(sel === i){ sel = -1; render(); return; }
-  if(canPour(state[sel], state[i])){
-    history.push(state.map(b=>b.slice()));
-    pour(state, sel, i); moves++; sel = -1; render();
+  if(finished || busy) return;
+  if(sel === -1){ if(state[i].length) { sel = i; sfx.select(); render(); } return; }
+  if(sel === i){ sel = -1; sfx.select(); render(); return; }
+  if(canPour(state[sel], state[i])){ doPour(sel, i); }
+  else if(state[i].length){ sel = i; sfx.select(); render(); }
+  else { sel = -1; sfx.bad(); render(); }
+}
+
+function doPour(a, b){
+  busy = true;
+  history.push(state.map(x=>x.slice()));
+  const color = topOf(state[a]);
+  const els = $("board").children, sEl = els[a], tEl = els[b];
+  let tx = 0, ty = 0, rot = 0;
+  const finish = ()=>{
+    const n = pour(state, a, b); moves++; sel = -1;
+    fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot };
+    busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
-    if(isSolved(state)) win();
-  } else {
-    if(state[i].length){ sel = i; render(); } else { sel = -1; render(); }
-  }
+    const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
+    if(isSolved(state)) win(); else if(full) sfx.done();
+  };
+  if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
+  sEl.classList.remove("sel");
+  const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
+  const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
+  rot = dir * 65;
+  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2 * dir * dir;   // horizontal shift of the mouth when tilted
+  tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - Math.abs(mouthX) * dir;
+  ty = (tr.top - 14) - (sr.top + sr.height/2) + Math.cos(rot*Math.PI/180) * sr.height/2;
+  sEl.style.zIndex = 5; sEl.style.transition = "transform .3s ease";
+  sEl.style.transform = "translate("+tx+"px,"+ty+"px) rotate("+rot+"deg)";
+  sfx.pour();
+  const stream = document.createElement("div");
+  setTimeout(()=>{
+    stream.className = "stream"; stream.style.background = COLORS[color];
+    stream.style.left = (tr.left + tr.width/2 - 3) + "px"; stream.style.top = (tr.top - 10) + "px"; stream.style.height = (tr.height * .75) + "px";
+    document.body.appendChild(stream);
+  }, 280);
+  setTimeout(()=>{ stream.remove(); finish(); }, 600);
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
@@ -246,12 +325,13 @@ function win(){
   $("winTitle").textContent = "Solved!";
   $("winStars").textContent = "⭐".repeat(st) + "☆".repeat(3-st);
   $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")<br>" + extra;
+  sfx.win();
   $("win").showModal();
 }
 
 /* ---------- controls ---------- */
-$("undo").onclick = ()=>{ if(!history.length||finished) return; state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ plan = null; state = puzzle.bottles.map(b=>b.slice()); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
+$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); history=[]; moves=0; sel=-1; finished=false; render(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
 let plan = null;
 const exactKey = st => st.map(b=>b.join("")).join("|");
@@ -266,14 +346,14 @@ function nextHint(){
   return plan.mv[idx];
 }
 $("hint").onclick = ()=>{
-  if(finished) return;
+  if(finished || busy) return;
   const m = nextHint();
   if(!m){ toast("No hint available"); return; }
   const [i,j] = m; sel = i; render();
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
-$("mDaily").onclick = ()=>startGame("daily");
-$("mEndless").onclick = ()=>startGame("endless");
+$("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
+$("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
 $("next").onclick = ()=>$("win").close();
 $("win").addEventListener("close", ()=>{ if(finished && mode==="endless") startGame("endless"); });
 $("share").onclick = async ()=>{
@@ -303,6 +383,9 @@ $("calClose").onclick = ()=>$("calDlg").close();
 /* settings */
 $("mSet").onclick = ()=>$("setDlg").showModal();
 $("setClose").onclick = ()=>$("setDlg").close();
+const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false ? "Off" : "On"); };
+$("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
+syncSnd();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
 $("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:save.cb }; LS.set("save", save); $("setDlg").close(); startGame(mode); } };
 
