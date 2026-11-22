@@ -80,3 +80,11 @@ test("liquid pour animation includes source tilt, stream and receiving feedback"
   assert.match(html, /stream\.style\.setProperty\("--liquid"/);
   assert.match(html, /stream\.remove\(\);/);
 });
+
+test("endless progression has explicit difficulty tiers and color milestones", () => {
+  const html = read("index.html");
+  assert.match(html, /function levelColorCount\(level\)/);
+  assert.match(html, /function difficultyForLevel\(level\)/);
+  assert.match(html, /Level " \+ lv \+ " · " \+ difficultyForLevel\(lv\)/);
+  assert.match(html, /levelColorCount,\s*difficultyForLevel,\s*generate,\s*isSolved,\s*solve/);
+});
