@@ -107,3 +107,46 @@ test("pour animation tilts the source, streams liquid, and completes the move", 
   await expect(page.locator(".stream")).toHaveCount(0);
   await expect(page.locator(".bottle.pouring")).toHaveCount(0);
 });
+
+test("endless progression exposes balanced difficulty tiers and color milestones", async ({ page }) => {
+  const milestones = [
+    { level: 1, colors: 4, tier: "Easy" },
+    { level: 4, colors: 5, tier: "Easy" },
+    { level: 7, colors: 6, tier: "Medium" },
+    { level: 13, colors: 8, tier: "Hard" },
+    { level: 19, colors: 10, tier: "Expert" },
+    { level: 22, colors: 11, tier: "Expert" }
+  ];
+  for (const milestone of milestones) {
+    const result = await page.evaluate(({ level }) => ({
+      colors: window.__cq.levelColorCount(level),
+      tier: window.__cq.difficultyForLevel(level)
+    }), milestone);
+    expect(result).toEqual({ colors: milestone.colors, tier: milestone.tier });
+  }
+});
+
+test("generated starting puzzle is solvable and has a valid par score", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const p = window.__cq.puzzle;
+    const solution = window.__cq.solve(p.bottles, 60000);
+    return {
+      par: p.par,
+      solutionLength: solution ? solution.length : 0,
+      solved: solution ? window.__cq.isSolved((() => {
+        const state = p.bottles.map(b => b.slice());
+        for (const [from, to] of solution) {
+          const source = state[from], target = state[to];
+          const color = source[source.length - 1];
+          let count = 0;
+          for (let i = source.length - 1; i >= 0 && source[i] === color; i--) count++;
+          for (let i = 0; i < Math.min(count, 4 - target.length); i++) target.push(source.pop());
+        }
+        return state;
+      })()) : false
+    };
+  });
+  expect(result.par).toBeGreaterThan(0);
+  expect(result.solutionLength).toBeGreaterThan(0);
+  expect(result.solved).toBe(true);
+});
