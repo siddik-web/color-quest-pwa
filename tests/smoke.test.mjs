@@ -189,7 +189,7 @@ test("frozen reserve modifier is limited to milestone levels and unlocks after t
   assert.match(html, /unlockAfter:2/);
   assert.match(html, /function frozenBottleIndex|const frozenBottleIndex/);
   assert.match(html, /id="modifierStatus"/);
-  assert.match(html, /classList\.add\("frozen"\)/);
+  assert.match(html, /frozen\?" frozen":""/);
 });
 
 test("puzzle generation fallback is a verified solvable board, never an arbitrary shuffled dead end", () => {
