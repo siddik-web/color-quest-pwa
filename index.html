@@ -124,7 +124,13 @@ footer button{display:flex;align-items:center;justify-content:center;gap:2px;min
 .bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
 .seg{position:relative;overflow:hidden}
 .seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
-.stream{width:7px;filter:drop-shadow(0 0 4px currentColor);border:1px solid #ffffff55}
+.stream{width:7px;filter:drop-shadow(0 0 4px var(--liquid));border:1px solid #ffffff55;background:linear-gradient(90deg,#ffffff55,var(--liquid),#ffffff88);box-shadow:0 0 9px var(--liquid);transform-origin:top center;overflow:hidden}
+.stream:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff9,transparent);animation:streamShimmer .32s linear infinite}
+@keyframes streamShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.bottle.pouring{z-index:6;transform-origin:50% 12%;filter:drop-shadow(0 10px 10px #0006)}
+.bottle.receiving{animation:receive .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes receive{0%,100%{filter:brightness(1)}35%{filter:brightness(1.32) drop-shadow(0 0 9px var(--accent))}}
+@media(prefers-reduced-motion:reduce){.stream:after{animation:none}.bottle.receiving{animation:none}}
 #win[open]{animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
 @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-offset:3px}
@@ -415,22 +421,31 @@ function doPour(a, b){
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
+  sEl.classList.add("pouring");
   const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
   const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
   rot = dir * 65;
-  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2 * dir * dir;   // horizontal shift of the mouth when tilted
+  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2 * dir * dir;
   tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - Math.abs(mouthX) * dir;
   ty = (tr.top - 14) - (sr.top + sr.height/2) + Math.cos(rot*Math.PI/180) * sr.height/2;
-  sEl.style.zIndex = 5; sEl.style.transition = "transform .3s ease";
+  sEl.style.zIndex = 5; sEl.style.transition = "transform .3s cubic-bezier(.2,.8,.2,1)";
   sEl.style.transform = "translate("+tx+"px,"+ty+"px) rotate("+rot+"deg)";
   sfx.pour();
   const stream = document.createElement("div");
-  setTimeout(()=>{
-    stream.className = "stream"; stream.style.background = COLORS[color];
-    stream.style.left = (tr.left + tr.width/2 - 3) + "px"; stream.style.top = (tr.top - 10) + "px"; stream.style.height = (tr.height * .75) + "px";
+  const streamTimer = setTimeout(()=>{
+    stream.className = "stream";
+    stream.style.setProperty("--liquid", COLORS[color]);
+    stream.style.left = (tr.left + tr.width/2 - 3) + "px";
+    stream.style.top = (tr.top - 10) + "px";
+    stream.style.height = Math.max(24, tr.height * .75) + "px";
+    tEl.classList.add("receiving");
     document.body.appendChild(stream);
   }, 280);
-  setTimeout(()=>{ stream.remove(); finish(); }, 600);
+  setTimeout(()=>{
+    clearTimeout(streamTimer);
+    stream.remove();
+    finish();
+  }, 650);
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
