@@ -228,7 +228,7 @@ test("milestone levels use a frozen reserve that thaws after two legal pours", a
   await expect(page.locator("#board .bottle.frozen")).toHaveCount(1);
 
   const frozenIndex = await page.evaluate(() => window.__cq.frozenBottleIndex());
-  await page.locator("#board .bottle").nth(frozenIndex).click();
+  await page.locator("#board .bottle").nth(frozenIndex).evaluate(el => el.click());
   await expect(page.locator("#moves")).toContainText("Moves 0");
   await expect(page.locator("#toast")).toContainText("Frozen reserve");
 
