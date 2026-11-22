@@ -80,6 +80,13 @@ dialog .row button{flex:1}
 #cal div{aspect-ratio:1;border-radius:6px;background:var(--glass);display:flex;align-items:center;justify-content:center;color:var(--muted)}
 #cal div.won{background:#4cd98a;color:#0b2a1a;font-weight:700}
 #cal div.today{outline:2px solid var(--accent)}
+#modifierForecast{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 12px}
+.forecast-day{min-width:0;padding:8px 3px;border-radius:10px;background:var(--glass);font-size:10px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.forecast-day b{font-size:17px;color:var(--text)}
+.forecast-day small{font-size:9px;line-height:1.2}
+.forecast-day.done{background:#245d4a;color:#b9ffd4}
+.forecast-day.today{outline:2px solid var(--accent)}
+#modifierHistory{font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 10px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 #lvrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:0 2px 4px}
@@ -253,6 +260,9 @@ body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24
   <h2 id="calTitle"></h2>
   <div id="journeySummary"></div>
   <div id="journeyPath" aria-label="Recent daily challenge journey"></div>
+  <h3 style="font-size:13px;text-align:left;margin:12px 0 6px">Upcoming daily challenges</h3>
+  <div id="modifierForecast" aria-label="Upcoming daily challenge modifiers"></div>
+  <div id="modifierHistory" aria-live="polite"></div>
   <div id="cal"></div>
   <div class="row"><button id="calClose" class="on">Close</button></div>
 </dialog>
@@ -789,6 +799,24 @@ function renderDailyJourney(){
   }
   $("journeySummary").textContent=save.streak+" day streak 🔥 · "+Object.keys(save.won).length+" daily challenges completed · last 7 days: "+completed+"/7";
 }
+function renderModifierForecast(){
+  const today=dateKey(), base=new Date(today+"T12:00:00"), forecast=$("modifierForecast");
+  forecast.innerHTML="";
+  const counts={"frozen-reserve":0,"limited-moves":0};
+  Object.keys(save.won||{}).forEach(k=>{ const modifier=dailyModifierForDate(k); if(counts[modifier.id]!==undefined) counts[modifier.id]++; });
+  for(let offset=0;offset<8;offset++){
+    const d=new Date(base); d.setDate(d.getDate()+offset); const k=dateKey(d), modifier=dailyModifierForDate(k), result=save.won[k];
+    const el=document.createElement("div");
+    el.className="forecast-day"+(result?" done":"")+(offset===0?" today":"");
+    const icon=modifier.id==="frozen-reserve"?"❄️":"⏳";
+    const label=modifier.name==="Frozen Reserve"?"Frozen":"Limited";
+    el.innerHTML="<small>"+(offset===0?"Today":d.toLocaleDateString(undefined,{weekday:"short"}))+"</small><b>"+icon+"</b><span>"+label+"</span><small>"+(result?"✓ Completed":offset===0?"Play today":"Upcoming")+"</small>";
+    el.title=k+" · "+modifier.name+(result?" · Completed":"");
+    el.setAttribute("aria-label",k+" · "+modifier.name+(result?" · completed":""));
+    forecast.appendChild(el);
+  }
+  $("modifierHistory").textContent="Completed modifier history · ❄️ Frozen Reserve: "+counts["frozen-reserve"]+" · ⏳ Limited Moves: "+counts["limited-moves"];
+}
 
 /* calendar */
 $("mCal").onclick = ()=>{
@@ -797,6 +825,7 @@ $("mCal").onclick = ()=>{
   const cal = $("cal"); cal.innerHTML = "";
   const first = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
   renderDailyJourney();
+  renderModifierForecast();
   for(let i=0;i<first;i++) cal.appendChild(document.createElement("div"));
   for(let day=1; day<=days; day++){
     const k = dateKey(new Date(y,m,day)), el = document.createElement("div");
