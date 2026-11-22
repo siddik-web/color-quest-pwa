@@ -15,7 +15,13 @@ const ASSETS = [
   "./assets/2d/icons/reset.svg",
   "./assets/2d/icons/extra-bottle.svg",
   "./assets/2d/icons/coin.svg",
-  "./assets/2d/mascot/chameleon.svg"
+  "./assets/2d/mascot/chameleon.svg",
+  "./assets/2d/colors/red.svg",
+  "./assets/2d/colors/orange.svg",
+  "./assets/2d/colors/yellow.svg",
+  "./assets/2d/colors/green.svg",
+  "./assets/2d/colors/blue.svg",
+  "./assets/2d/colors/purple.svg"
 ];
 
 self.addEventListener("install", (e) => {
