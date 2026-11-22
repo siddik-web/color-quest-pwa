@@ -1,11 +1,21 @@
-const CACHE = "color-quest-v4";
+const CACHE = "color-quest-v5";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/icon-maskable-512.png"
+  "./icons/icon-maskable-512.png",
+  "./assets/2d/icons/calendar.svg",
+  "./assets/2d/icons/trophy.svg",
+  "./assets/2d/icons/shop.svg",
+  "./assets/2d/icons/settings.svg",
+  "./assets/2d/icons/undo.svg",
+  "./assets/2d/icons/hint.svg",
+  "./assets/2d/icons/reset.svg",
+  "./assets/2d/icons/extra-bottle.svg",
+  "./assets/2d/icons/coin.svg",
+  "./assets/2d/mascot/chameleon.svg"
 ];
 
 self.addEventListener("install", (e) => {
