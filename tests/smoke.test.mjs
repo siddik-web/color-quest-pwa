@@ -133,3 +133,16 @@ test("level-specific illustrated board environments and glossy color layers are 
   assert.match(html, /#board:after/);
   assert.match(html, /#board \.seg/);
 });
+
+test("background music and sound effects have independent persistent controls", () => {
+  const html = read("index.html");
+  assert.match(html, /id="musicBtn"/);
+  assert.match(html, /id="musicVolume"/);
+  assert.match(html, /id="musicVolumeValue"/);
+  assert.match(html, /musicVol:0\.18/);
+  assert.match(html, /function syncMusicControls/);
+  assert.match(html, /sfx\.syncMusic\(\)/);
+  assert.match(html, /musicBus\.gain\.setTargetAtTime/);
+  assert.match(html, /document\.addEventListener\("pointerdown"/);
+  assert.match(html, /Background music:/);
+});
