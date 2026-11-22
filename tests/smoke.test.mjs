@@ -140,7 +140,7 @@ test("background music and sound effects have independent persistent controls", 
   assert.match(html, /id="musicVolume"/);
   assert.match(html, /id="musicVolumeValue"/);
   assert.match(html, /musicVol:0\.18/);
-  assert.match(html, /function syncMusicControls/);
+  assert.match(html, /const syncMusicControls = \(\)=>/);
   assert.match(html, /sfx\.syncMusic\(\)/);
   assert.match(html, /musicBus\.gain\.setTargetAtTime/);
   assert.match(html, /document\.addEventListener\("pointerdown"/);
