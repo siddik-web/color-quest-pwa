@@ -402,7 +402,10 @@ function difficultyForLevel(level){
   if(level <= 6) return "Easy";
   if(level <= 12) return "Medium";
   if(level <= 18) return "Hard";
-  return "Expert";
+  if(level <= 30) return "Expert";
+  if(level <= 50) return "Master";
+  if(level <= 75) return "Grandmaster";
+  return "Legend";
 }
 
 function generate(seedStr, nColors){
@@ -672,15 +675,17 @@ $("howToBtn").onclick=()=>{ $("setDlg").close(); openTutorial(); };
 $("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
 function renderLevelMap(){
   const grid=$("levelGrid"); grid.innerHTML="";
-  const max=Math.max(30,save.level+5);
-  $("levelSummary").textContent="Level "+save.level+" is unlocked · "+Object.keys(save.levelResults).length+" completed";
+  const max=Math.max(100,save.level+9);
+  const completed=Object.keys(save.levelResults).length;
+  $("levelSummary").textContent="Level "+save.level+" unlocked · "+completed+" completed · 100-level campaign";
   for(let level=1;level<=max;level++){
     const result=save.levelResults[String(level)], unlocked=level<=save.level;
     const tile=document.createElement("button");
+    const tier=difficultyForLevel(level);
     tile.className="level-tile"+(level===save.level?" current":"")+(result?" completed":"")+(unlocked?"":" locked");
     tile.disabled=!unlocked;
-    tile.innerHTML="<span>"+(unlocked?level:"🔒")+"</span><small>"+(result?"★".repeat(result.stars||0):unlocked?"Play":"Locked")+"</small>";
-    tile.setAttribute("aria-label",unlocked?"Play level "+level+(result?", completed":""):"Level "+level+" locked");
+    tile.innerHTML="<span>"+(unlocked?level:"🔒")+"</span><small>"+(result?"★".repeat(result.stars||0):unlocked?tier:"Locked")+"</small>";
+    tile.setAttribute("aria-label",unlocked?"Play level "+level+" · "+tier+(result?", completed":""):"Level "+level+" · "+tier+" locked");
     tile.onclick=()=>{ $("levelDlg").close(); startGame("endless",level); };
     grid.appendChild(tile);
   }
