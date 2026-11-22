@@ -234,7 +234,9 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
   <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
   <div class="row"><button id="howToBtn">📘 How to play</button></div>
-  <div class="row"><button id="sndBtn">Sound: On</button></div>
+  <div class="row"><button id="sndBtn">Sound effects: On</button></div>
+  <div class="row"><button id="musicBtn">Background music: On</button></div>
+  <div class="row" style="display:block;text-align:left"><label for="musicVolume" style="display:block;color:var(--muted);font-size:13px;margin-bottom:8px">Music volume <span id="musicVolumeValue">18%</span></label><input id="musicVolume" type="range" min="0" max="100" value="18" style="width:100%;accent-color:var(--accent)"></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
@@ -284,46 +286,75 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem("cq."+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
-const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
+const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true, music:true, musicVol:0.18,
   coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
 save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {};
 
-/* ---------- sound (synthesised with WebAudio, no files) ---------- */
+/* ---------- original procedural sound + adaptive ambient music (no external files) ---------- */
 const sfx = (()=>{
-  let ctx = null, master = null;
-  const on = ()=> save.snd !== false;
+  let ctx=null, master=null, musicBus=null, musicTimer=null, musicStep=0;
+  const on=()=>save.snd!==false;
+  const musicOn=()=>save.music!==false;
   function init(){
     if(ctx) return true;
-    try{ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
-      ctx = new AC(); master = ctx.createGain(); master.gain.value = .28; master.connect(ctx.destination); }catch(e){ return false; }
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+      ctx=new AC();master=ctx.createGain();master.gain.value=.28;master.connect(ctx.destination);
+      musicBus=ctx.createGain();musicBus.gain.value=0;musicBus.connect(ctx.destination);
+    }catch(e){return false;}
     return true;
   }
-  function ready(){ if(!on() || !init()) return false; if(ctx.state === "suspended") ctx.resume(); return true; }
-  function tone(f, t0, dur, type, vol, f2){
-    const now = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(f, now + t0);
-    if(f2) o.frequency.exponentialRampToValueAtTime(f2, now + t0 + dur);
-    g.gain.setValueAtTime(.0001, now + t0); g.gain.exponentialRampToValueAtTime(vol, now + t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, now + t0 + dur);
-    o.connect(g); g.connect(master); o.start(now + t0); o.stop(now + t0 + dur + .02);
+  function ready(){if(!init())return false;if(ctx.state==="suspended")ctx.resume().catch(()=>{});return true;}
+  function tone(f,t0,dur,type,vol,f2){
+    if(!ready()||!on())return;
+    const now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,now+t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,now+t0+dur);
+    g.gain.setValueAtTime(.0001,now+t0);g.gain.exponentialRampToValueAtTime(vol,now+t0+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t0+dur);
+    o.connect(g);g.connect(master);o.start(now+t0);o.stop(now+t0+dur+.02);
+  }
+  function musicNote(freq,when,duration,volume,type="sine"){
+    const o=ctx.createOscillator(),g=ctx.createGain(),filter=ctx.createBiquadFilter();
+    o.type=type;o.frequency.setValueAtTime(freq,when);filter.type="lowpass";filter.frequency.value=1800;
+    g.gain.setValueAtTime(.0001,when);g.gain.linearRampToValueAtTime(volume,when+.035);g.gain.setTargetAtTime(.0001,when+duration*.55,duration*.22);
+    o.connect(filter);filter.connect(g);g.connect(musicBus);o.start(when);o.stop(when+duration);
+  }
+  const scale=[261.63,293.66,349.23,392,440,523.25,587.33,698.46];
+  function scheduleMusic(){
+    if(!ready()||!musicOn())return;
+    const now=ctx.currentTime, step=musicStep++%16, root=[0,3,5,4][Math.floor(step/4)];
+    const melody=[0,4,2,5,4,2,1,3,0,2,4,7,5,3,2,1][step];
+    const when=now+.025;
+    musicNote(scale[melody],when,.42,.075,"sine");
+    if(step%4===0){
+      const chord=[scale[root],scale[(root+2)%8],scale[(root+4)%8]];
+      chord.forEach((freq,i)=>musicNote(freq/2,when,.95,.022,"triangle"));
+    }
+  }
+  function syncMusic(){
+    if(!ready())return;
+    if(ctx.state==="suspended")ctx.resume().catch(()=>{});
+    const target=musicOn()?Math.max(0,Math.min(1,Number(save.musicVol??.18))):0;
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setTargetAtTime(target,ctx.currentTime,.18);
+    if(musicOn()&&!musicTimer){musicStep=0;scheduleMusic();musicTimer=setInterval(scheduleMusic,360);}
+    if(!musicOn()&&musicTimer){clearInterval(musicTimer);musicTimer=null;}
   }
   function pour(){
-    if(!ready()) return;
-    const dur = .55, len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-    for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
-    bp.frequency.setValueAtTime(500, ctx.currentTime); bp.frequency.linearRampToValueAtTime(1400, ctx.currentTime + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(.55, ctx.currentTime + .12); g.gain.linearRampToValueAtTime(.0001, ctx.currentTime + dur);
-    src.connect(bp); bp.connect(g); g.connect(master); src.start();
+    if(!ready()||!on())return;
+    const dur=.55,len=Math.floor(ctx.sampleRate*dur),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=ctx.createBufferSource();src.buffer=buf;const bp=ctx.createBiquadFilter();bp.type="bandpass";bp.Q.value=2.5;
+    bp.frequency.setValueAtTime(500,ctx.currentTime);bp.frequency.linearRampToValueAtTime(1400,ctx.currentTime+dur);
+    const g=ctx.createGain();g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.linearRampToValueAtTime(.55,ctx.currentTime+.12);g.gain.linearRampToValueAtTime(.0001,ctx.currentTime+dur);
+    src.connect(bp);bp.connect(g);g.connect(master);src.start();
   }
+  document.addEventListener("pointerdown",()=>{if(musicOn())syncMusic();},{once:true,passive:true});
   return {
-    select(){ if(ready()) tone(620, 0, .07, "sine", .35); },
-    bad(){ if(ready()) tone(170, 0, .12, "square", .18, 110); },
-    undo(){ if(ready()) tone(420, 0, .09, "triangle", .3, 260); },
-    pour,
-    done(){ if(!ready()) return; tone(880, 0, .18, "sine", .3); tone(1320, .09, .25, "sine", .28); },
-    win(){ if(!ready()) return; [523.25, 659.25, 783.99, 1046.5].forEach((f,k)=>tone(f, k*.11, .3, "triangle", .35)); }
+    select(){tone(620,0,.07,"sine",.35);},bad(){tone(170,0,.12,"square",.18,110);},undo(){tone(420,0,.09,"triangle",.3,260);},pour,
+    done(){tone(880,0,.18,"sine",.3);tone(1320,.09,.25,"sine",.28);},
+    win(){[523.25,659.25,783.99,1046.5].forEach((f,k)=>tone(f,k*.11,.3,"triangle",.35));},
+    syncMusic, setMusicVolume(){syncMusic();}
   };
 })();
 const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -723,9 +754,20 @@ $("calClose").onclick = ()=>$("calDlg").close();
 /* settings */
 $("mSet").onclick = ()=>$("setDlg").showModal();
 $("setClose").onclick = ()=>$("setDlg").close();
-const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false ? "Off" : "On"); };
+const syncSnd = ()=>{ $("sndBtn").textContent = "Sound effects: " + (save.snd === false ? "Off" : "On"); };
+const syncMusicControls = ()=>{
+  $("musicBtn").textContent = "Background music: " + (save.music === false ? "Off" : "On");
+  $("musicVolume").value = Math.round(Math.max(0,Math.min(1,Number(save.musicVol??.18)))*100);
+  $("musicVolumeValue").textContent = $("musicVolume").value + "%";
+};
 $("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
-syncSnd();
+$("musicBtn").onclick = ()=>{ save.music = save.music === false; LS.set("save",save); syncMusicControls(); sfx.syncMusic(); };
+$("musicVolume").oninput = ()=>{
+  save.musicVol=Number($("musicVolume").value)/100;
+  $("musicVolumeValue").textContent=$("musicVolume").value+"%";
+  LS.set("save",save);sfx.setMusicVolume();
+};
+syncSnd();syncMusicControls();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
 $("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
