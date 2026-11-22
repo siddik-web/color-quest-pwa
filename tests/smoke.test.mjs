@@ -156,3 +156,25 @@ test("bottles use translucent glass styling with polished rims and liquid depth"
   assert.match(html, /inset 0 -4px 6px rgba\(0,0,0,.22\)/);
   assert.match(html, /rgba\(255,255,255,.92\)/);
 });
+
+test("daily and weekly quests have stable reset keys, progress, and claimable rewards", () => {
+  const html = read("index.html");
+  assert.match(html, /id="mQuest"/);
+  assert.match(html, /id="questDlg"/);
+  assert.match(html, /function isoWeekKey\(date=new Date\(\)\)/);
+  assert.match(html, /function ensureQuestState\(\)/);
+  assert.match(html, /function trackQuestMove\(\)/);
+  assert.match(html, /function trackQuestWin\(flawless\)/);
+  assert.match(html, /Complete 5 puzzles this week/);
+  assert.match(html, /q\.dailyClaimed\[item\.id\]=true/);
+  assert.match(html, /q\.weeklyClaimed=true/);
+  assert.match(html, /QUEST_REWARDS = \{ daily:20, weekly:100 \}/);
+});
+
+test("puzzle generation fallback is a verified solvable board, never an arbitrary shuffled dead end", () => {
+  const html = read("index.html");
+  assert.match(html, /Guaranteed-solvable fallback/);
+  assert.match(html, /const verified = solve\(fallback, 10000\)/);
+  assert.match(html, /return \{ bottles:fallback, par:verified \? verified\.length : 2 \}/);
+  assert.match(html, /generatorFallback/);
+});
