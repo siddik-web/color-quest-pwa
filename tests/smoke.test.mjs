@@ -71,3 +71,12 @@ test("daily challenge journey tracker is present and uses saved results", () => 
   assert.match(html, /save\.won\[k\]/);
   assert.match(html, /save\.streak/);
 });
+
+test("liquid pour animation includes source tilt, stream and receiving feedback", () => {
+  const html = read("index.html");
+  assert.match(html, /\.bottle\.pouring/);
+  assert.match(html, /\.bottle\.receiving/);
+  assert.match(html, /@keyframes streamShimmer/);
+  assert.match(html, /stream\.style\.setProperty\("--liquid"/);
+  assert.match(html, /stream\.remove\(\);/);
+});
