@@ -490,11 +490,14 @@ function doPour(a, b){
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
-function applyReplayResult(previous, earned){
+function applyReplayResult(previous, earned, moves=previous.moves){
   const oldStars=Number(previous.stars)||0;
   const newStars=Math.max(oldStars,earned);
+  const previousBest=Number(previous.bestMoves)||Number(previous.moves)||Infinity;
+  const currentMoves=Number(moves)||Infinity;
   previous.stars=newStars;
-  previous.bestMoves=Math.min(Number(previous.bestMoves)||previous.moves||Infinity,previous.moves||Infinity);
+  previous.moves=currentMoves;
+  previous.bestMoves=Math.min(previousBest,currentMoves);
   return newStars-oldStars;
 }
 
@@ -532,9 +535,7 @@ function win(){
         note = "Level " + completedLevel + " milestone! +" + bonus + " bonus coins · Unlocked: Level " + save.level;
       } else note = "Unlocked: Level " + save.level;
     } else {
-      previous.moves = moves;
-      const starDelta = applyReplayResult(previous, st);
-      previous.bestMoves = Math.min(Number(previous.bestMoves)||moves, moves);
+      const starDelta = applyReplayResult(previous, st, moves);
       save.stars += starDelta;
       note = "Replay complete · best " + previous.bestMoves + " moves";
       if(starDelta > 0) note += " · +" + starDelta + " star" + (starDelta===1?"":"s");
@@ -921,6 +922,7 @@ window.__cq = {
   generate,
   isSolved,
   solve,
+  pour,
   checkDailyReward,
   openTutorial,
   get tutorialStep(){ return tutorialStep; },
