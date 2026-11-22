@@ -30,6 +30,12 @@ button.on{background:var(--accent);color:#1b1b1b;font-weight:700}
 button:disabled{opacity:.4}
 #info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:2px 4px 8px}
 #levelMapBtn{padding:6px 10px;font-size:12px;white-space:nowrap}
+#tutorialStep{min-height:112px;display:flex;flex-direction:column;justify-content:center;gap:8px;margin:12px 0}
+#tutorialStep .tutorial-icon{font-size:38px}
+#tutorialStep p{margin:0;color:var(--muted);line-height:1.5}
+#tutorialProgress{display:flex;justify-content:center;gap:6px;margin:10px 0}
+#tutorialProgress i{width:7px;height:7px;border-radius:50%;background:#ffffff35}
+#tutorialProgress i.active{background:var(--accent);transform:scale(1.25)}
 #levelGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0;max-height:48vh;overflow:auto}
 .level-tile{min-height:58px;padding:7px 3px;border-radius:12px;background:var(--glass);border:1px solid #ffffff25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:800}
 .level-tile small{font-size:10px;color:var(--muted)}
@@ -172,6 +178,13 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
   </footer>
 </div>
 
+<dialog id="tutorialDlg">
+  <h2 id="tutorialTitle">Welcome to Color Quest!</h2>
+  <div id="tutorialProgress" aria-label="Tutorial progress"></div>
+  <div id="tutorialStep"></div>
+  <div class="row"><button id="tutorialSkip">Skip</button><button id="tutorialNext" class="on">Next</button></div>
+</dialog>
+
 <dialog id="win">
   <h2 id="winTitle">Solved!</h2>
   <div class="stars" id="winStars"></div>
@@ -199,6 +212,7 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
   <h2>Settings</h2>
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
   <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
+  <div class="row"><button id="howToBtn">📘 How to play</button></div>
   <div class="row"><button id="sndBtn">Sound: On</button></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
@@ -359,7 +373,7 @@ function generate(seedStr, nColors){
 
 /* ---------- game state ---------- */
 let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
-let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null;
+let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null, tutorialStep = 0;
 
 const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
@@ -561,6 +575,31 @@ $("hint").onclick = ()=>{
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
 $("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
+const TUTORIAL = [
+  { icon:"🧪", title:"Welcome to Color Quest!", body:"Your goal is simple: sort every color into its own bottle. Each bottle must contain four matching layers." },
+  { icon:"👆", title:"1. Select a bottle", body:"Tap any bottle with liquid to pick it up. The selected bottle will lift slightly so you can see which one is active." },
+  { icon:"💧", title:"2. Pour matching colors", body:"Tap another bottle to pour. You can pour onto the same color or into an empty bottle. Only the top matching color layers move." },
+  { icon:"↩️", title:"3. Use your tools", body:"Undo reverses your last move. Hint shows a suggested move. Reset starts the current puzzle over. Extra bottles can help when you need more space." },
+  { icon:"⭐", title:"4. Earn rewards", body:"Finish with fewer moves to earn more stars. Complete levels to unlock the next one, collect coins and gain XP. Daily challenges build your streak!" }
+];
+function renderTutorial(){
+  const item=TUTORIAL[tutorialStep];
+  $("tutorialTitle").textContent=item.title;
+  $("tutorialStep").innerHTML='<div class="tutorial-icon">'+item.icon+'</div><p>'+item.body+'</p>';
+  $("tutorialProgress").innerHTML=TUTORIAL.map((_,i)=>'<i class="'+(i===tutorialStep?"active":"")+'"></i>').join("");
+  $("tutorialNext").textContent=tutorialStep===TUTORIAL.length-1?"Let's play!":"Next";
+}
+function openTutorial(){
+  tutorialStep=0; renderTutorial(); $("tutorialDlg").showModal();
+}
+function finishTutorial(){
+  save.tutorialSeen=true; LS.set("save",save); $("tutorialDlg").close();
+  if(save.dr.last!==dateKey()) setTimeout(checkDailyReward,120);
+}
+$("tutorialNext").onclick=()=>{ if(tutorialStep<TUTORIAL.length-1){tutorialStep++;renderTutorial();}else finishTutorial(); };
+$("tutorialSkip").onclick=finishTutorial;
+$("tutorialDlg").addEventListener("close",()=>{ if(!save.tutorialSeen && tutorialStep===TUTORIAL.length-1) finishTutorial(); });
+$("howToBtn").onclick=()=>{ $("setDlg").close(); openTutorial(); };
 $("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
 function renderLevelMap(){
   const grid=$("levelGrid"); grid.innerHTML="";
@@ -800,7 +839,7 @@ $("bottle").onclick = ()=>{
 const REW = [10,15,20,25,30,40,75];
 let drPending = null;
 function checkDailyReward(){
-  const today = dateKey(); if(save.dr.last === today || $("drDlg").open) return;
+  const today = dateKey(); if(save.dr.last === today || $("drDlg").open || $("tutorialDlg").open) return;
   const y = new Date(); y.setDate(y.getDate()-1);
   const day = (save.dr.last === dateKey(y)) ? (save.dr.day % 7) + 1 : 1;
   drPending = day;
@@ -848,7 +887,8 @@ if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=
 
 applyTheme(save.theme);
 startGame("daily");
-setTimeout(checkDailyReward, 350);
+if(!save.tutorialSeen) setTimeout(openTutorial, 300);
+else setTimeout(checkDailyReward, 350);
 Ads.init();
 window.__cq = {
   nextHint,
@@ -862,7 +902,9 @@ window.__cq = {
   generate,
   isSolved,
   solve,
-  checkDailyReward
+  checkDailyReward,
+  openTutorial,
+  get tutorialStep(){ return tutorialStep; }
 };
 })();
 </script>
