@@ -158,12 +158,11 @@ footer button{display:flex;align-items:center;justify-content:center;gap:2px;min
 .bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
 .seg{position:relative;overflow:hidden}
 .seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
-.stream{position:fixed;width:5px;border-radius:99px;z-index:8;pointer-events:none;transform-origin:top center;background:linear-gradient(90deg,#ffffff55,var(--liquid) 38%,var(--liquid) 68%,#ffffffbb);border:1px solid #ffffff66;animation:liquid-flow .16s ease-out both;will-change:transform,opacity}
-.stream:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,#ffffffaa 48%,transparent);animation:streamShimmer .22s linear infinite}
-@keyframes liquid-flow{from{transform:rotate(var(--stream-angle,0deg)) scaleY(.08)}to{transform:rotate(var(--stream-angle,0deg)) scaleY(1)}}
-@keyframes streamShimmer{from{transform:translateY(-35%)}to{transform:translateY(35%)}}
-.bottle.pouring{z-index:6;transform-origin:50% 12%;animation:bottle-tilt .28s cubic-bezier(.2,.8,.2,1) forwards;will-change:transform}
-@keyframes bottle-tilt{to{transform:translate(var(--pour-x),var(--pour-y)) rotate(var(--pour-rotation))}}
+.pour-stream{position:fixed;inset:0;width:100vw;height:100vh;overflow:visible;z-index:8;pointer-events:none;will-change:opacity}
+.pour-stream path{fill:none;stroke:var(--liquid);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 2px #fff8);stroke-dasharray:1;stroke-dashoffset:0}
+.pour-stream .stream-highlight{stroke:#ffffffa8;stroke-width:1.4;stroke-dasharray:1;stroke-dashoffset:0}
+.bottle.pouring{z-index:6;transform-origin:50% 50%;animation:bottle-tilt .76s cubic-bezier(.22,.72,.25,1) both;will-change:transform}
+@keyframes bottle-tilt{0%{transform:rotate(0deg)}34%{transform:rotate(var(--pour-rotation))}78%{transform:rotate(var(--pour-rotation))}90%{transform:rotate(calc(var(--pour-rotation)*.82))}100%{transform:rotate(0deg)}}
 .liquid-drop{position:fixed;width:9px;height:11px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;transform:translate3d(0,0,0) rotate(45deg);will-change:transform,opacity}
 @keyframes drop-splash{0%{opacity:0;transform:translateY(-8px) scale(.55) rotate(45deg)}45%{opacity:1;transform:translateY(2px) scale(1) rotate(45deg)}100%{opacity:0;transform:translateY(13px) scale(.35) rotate(45deg)}}
 .bottle.receiving{animation:receive .38s ease-out}
@@ -509,13 +508,15 @@ function doPour(a, b){
   history.push(state.map(x=>x.slice()));
   const color = topOf(state[a]);
   const els = $("board").children, sEl = els[a], tEl = els[b];
-  let tx = 0, ty = 0, rot = 0;
-  const stream = document.createElement("div");
+  let rot = 0;
+  const stream = document.createElementNS("http://www.w3.org/2000/svg","svg");
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  const highlight = document.createElementNS("http://www.w3.org/2000/svg","path");
   const drop = document.createElement("div");
   const finish = ()=>{
     stream.remove(); drop.remove();
     const n = pour(state, a, b); moves++; sel = -1;
-    fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot };
+    fx = REDUCED ? null : { from:a, to:b, n, tx:0, ty:0, rot:0 };
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
@@ -523,67 +524,62 @@ function doPour(a, b){
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
-  sEl.classList.add("pouring");
   const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
   const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
-  rot = dir * 58;
-  // Keep the bottle anchored in its own board slot. Pivot at the pouring-side
-  // upper corner so its body swings away from the receiving bottle.
-  tx = 0;
-  ty = 0;
-  sEl.style.zIndex = 6;
-  sEl.style.transformOrigin = dir > 0 ? "100% 12%" : "0% 12%";
-  sEl.style.setProperty("--pour-rotation", rot+"deg");
-  sEl.style.setProperty("--pour-x", "0px");
-  sEl.style.setProperty("--pour-y", "0px");
+  rot = dir * 38;
+  // Rotate around the bottle's centre so it stays visually anchored in its own slot.
+  const cx = sr.left + sr.width/2, cy = sr.top + sr.height/2;
+  sEl.style.transformOrigin = "50% 50%";
+  sEl.style.setProperty("--pour-rotation",rot+"deg");
+  sEl.classList.add("pouring");
   sfx.pour();
-  const pourTimer = setTimeout(()=>{
-    const tilted = sEl.getBoundingClientRect();
-    const target = tEl.getBoundingClientRect();
-    const x1 = dir > 0 ? tilted.right - 7 : tilted.left + 7;
-    const y1 = tilted.top + 14;
-    const x2 = target.left + target.width/2;
-    const y2 = target.top + 12;
-    const dx = x2-x1, dy = y2-y1;
-    const distance = Math.max(18,Math.hypot(dx,dy));
-    const angle = Math.atan2(dy,dx)*180/Math.PI-90;
-    stream.className = "stream";
-    stream.style.setProperty("--liquid",COLORS[color]);
-    stream.style.left = x1+"px";
-    stream.style.top = y1+"px";
-    stream.style.height = distance+"px";
-    stream.style.setProperty("--stream-angle",angle+"deg");
-    stream.style.transform = "rotate("+angle+"deg)";
-    drop.className = "liquid-drop";
-    drop.style.setProperty("--liquid",COLORS[color]);
-    drop.style.left = (x1-5)+"px";
-    drop.style.top = (y1-5)+"px";
-    drop.style.animation = "none";
-    tEl.classList.add("receiving");
-    document.body.append(stream,drop);
 
-    // Carry the droplet along a gravity-shaped arc instead of animating it in place.
-    const started = performance.now(), travelMs = 430;
-    const controlX = (x1+x2)/2 + (dir > 0 ? -8 : 8);
-    const controlY = Math.max(y1,y2) + Math.min(28,distance*.08);
+  const pourTimer = setTimeout(()=>{
+    // Compute the spout by rotating its actual top-side corner around the same centre.
+    // getBoundingClientRect() after rotation is only an axis-aligned bounding box,
+    // so using its right/top edges would place the stream outside the glass.
+    const theta = rot*Math.PI/180;
+    const localX = dir > 0 ? sr.width*.88 : sr.width*.12;
+    const localY = sr.height*.10;
+    const px = sr.left + localX - cx, py = sr.top + localY - cy;
+    const x1 = cx + px*Math.cos(theta) - py*Math.sin(theta);
+    const y1 = cy + px*Math.sin(theta) + py*Math.cos(theta);
+    const x2 = tr.left + tr.width/2;
+    const y2 = tr.top + 12;
+    const dx=x2-x1, dy=y2-y1;
+    const distance=Math.max(24,Math.hypot(dx,dy));
+    // A shallow quadratic arc gives the stream a gravity-driven sag.
+    const controlX=(x1+x2)/2 + (dir>0?-10:10);
+    const controlY=Math.max(y1,y2)+Math.min(34,distance*.12);
+    stream.setAttribute("viewBox","0 0 "+window.innerWidth+" "+window.innerHeight);
+    stream.setAttribute("preserveAspectRatio","none");
+    stream.classList.add("pour-stream");
+    stream.style.setProperty("--liquid",COLORS[color]);
+    const d="M "+x1+" "+y1+" Q "+controlX+" "+controlY+" "+x2+" "+y2;
+    path.setAttribute("d",d); path.style.stroke=COLORS[color];
+    highlight.setAttribute("d",d); highlight.setAttribute("class","stream-highlight");
+    stream.append(path,highlight);
+    drop.className="liquid-drop";
+    drop.style.setProperty("--liquid",COLORS[color]);
+    drop.style.left=(x1-4)+"px"; drop.style.top=(y1-5)+"px";
+    drop.style.animation="none";
+    document.body.append(stream,drop);
+    tEl.classList.add("receiving");
+
+    const started=performance.now(), travelMs=420;
     function moveDrop(now){
-      const raw = Math.min(1,(now-started)/travelMs);
-      const p = raw*raw*(3-2*raw);
-      const inv = 1-p;
-      const x = inv*inv*x1 + 2*inv*p*controlX + p*p*x2;
-      const y = inv*inv*y1 + 2*inv*p*controlY + p*p*y2;
-      // Animate with compositor-only transforms; avoid per-frame layout from left/top writes.
-      drop.style.transform = "translate3d("+(x-x1)+"px,"+(y-y1)+"px,0) rotate(45deg) scale("+(.78+Math.sin(raw*Math.PI)*.22)+")";
-      drop.style.opacity = String(Math.min(1,raw*5,(1-raw)*5));
+      const raw=Math.min(1,(now-started)/travelMs);
+      const p=raw, inv=1-p;
+      const x=inv*inv*x1+2*inv*p*controlX+p*p*x2;
+      const y=inv*inv*y1+2*inv*p*controlY+p*p*y2;
+      drop.style.transform="translate3d("+(x-x1)+"px,"+(y-y1)+"px,0) rotate(45deg) scale("+(0.82+Math.sin(raw*Math.PI)*.18)+")";
+      drop.style.opacity=String(Math.min(1,raw*6,(1-raw)*6));
       if(raw<1) requestAnimationFrame(moveDrop);
-      else { drop.style.transform = "translate3d("+(x2-x1)+"px,"+(y2-y1)+"px,0) rotate(45deg) scale(.5)";drop.style.opacity="0"; }
+      else { drop.style.transform="translate3d("+(x2-x1)+"px,"+(y2-y1)+"px,0) rotate(45deg) scale(.55)";drop.style.opacity="0"; }
     }
     requestAnimationFrame(moveDrop);
-  },280);
-  setTimeout(()=>{
-    clearTimeout(pourTimer);
-    finish();
-  },760);
+  },300);
+  setTimeout(()=>{ clearTimeout(pourTimer); finish(); },760);
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
