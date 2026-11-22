@@ -1,4 +1,4 @@
-const CACHE = "color-quest-v1";
+const CACHE = "color-quest-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -20,21 +20,19 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Cache-first for the app shell, falling back to network, then to index.html offline.
+// Stale-while-revalidate: serve instantly from cache (works offline) and refresh in the background,
+// so a new deploy shows up on the next launch without bumping the cache name every time.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    caches.match(e.request).then((hit) => {
-      if (hit) return hit;
-      return fetch(e.request)
-        .then((res) => {
-          if (res.ok && new URL(e.request.url).origin === location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match("./index.html"));
+    caches.open(CACHE).then(async (cache) => {
+      const hit = await cache.match(e.request, { ignoreSearch: true });
+      const net = fetch(e.request)
+        .then((res) => { if (res.ok) cache.put(e.request, res.clone()); return res; })
+        .catch(() => null);
+      if (hit) { e.waitUntil(net); return hit; }
+      return (await net) || (await cache.match("./index.html"));
     })
   );
 });

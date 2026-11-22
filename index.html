@@ -14,8 +14,8 @@
 <style>
 :root{--bg:#14172b;--panel:#1f2340;--text:#f2f4ff;--muted:#9aa0c8;--accent:#ffd24a;--glass:rgba(255,255,255,.12)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
-#app{display:flex;flex-direction:column;height:100%;max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+html,body{margin:0;height:100%;touch-action:manipulation;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 6px}
 h1{font-size:20px;margin:0;letter-spacing:.5px}
 .chips{display:flex;gap:8px}
@@ -29,8 +29,9 @@ button.on{background:var(--accent);color:#1b1b1b;font-weight:700}
 button:disabled{opacity:.4}
 #info{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);padding:2px 4px 8px}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:22px 14px;justify-content:center;align-content:center;padding:10px 0}
-.bottle{width:48px;height:168px;border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;transition:transform .15s;position:relative}
-.bottle.sel{transform:translateY(-18px)}
+.bottle{width:48px;height:168px;border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
+.bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
+@keyframes lift{from{transform:translateY(0)}to{transform:translateY(-18px)}}
 .bottle.done{border-color:#7dffb0;box-shadow:0 0 12px #7dffb066}
 .seg{flex:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:rgba(0,0,0,.65)}
 .seg:first-child{border-bottom-left-radius:18px;border-bottom-right-radius:18px}
@@ -96,6 +97,7 @@ dialog .row button{flex:1}
 <div class="toast" id="toast"></div>
 
 <script>
+(()=>{
 "use strict";
 const CAP = 4;
 const COLORS = ["#ff5a5f","#ffa63d","#ffe14d","#7ddc4a","#27c3a6","#3fa7ff","#6c63ff","#c05cff","#ff6fb5","#9a6b45","#9aa3b2","#1fd1ff"];
@@ -115,14 +117,14 @@ function hash(str){ let h = 1779033703 ^ str.length; for(let i=0;i<str.length;i+
 function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a>>>15, 1 | a); t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t; return ((t ^ t>>>14) >>> 0) / 4294967296; }; }
 
 /* ---------- puzzle core ---------- */
-const top = b => b.length ? b[b.length-1] : -1;
-function topRun(b){ if(!b.length) return 0; const c = top(b); let n = 0; for(let i=b.length-1;i>=0&&b[i]===c;i--) n++; return n; }
-function canPour(a, b){ if(!a.length || b.length>=CAP) return false; if(b.length && top(b)!==top(a)) return false; if(!b.length && a.every(x=>x===a[0])) return false; return true; }
+const topOf = b => b.length ? b[b.length-1] : -1;
+function topRun(b){ if(!b.length) return 0; const c = topOf(b); let n = 0; for(let i=b.length-1;i>=0&&b[i]===c;i--) n++; return n; }
+function canPour(a, b){ if(!a.length || b.length>=CAP) return false; if(b.length && topOf(b)!==topOf(a)) return false; if(!b.length && a.every(x=>x===a[0])) return false; return true; }
 function pour(state, i, j){ const a = state[i], b = state[j]; const n = Math.min(topRun(a), CAP-b.length); for(let k=0;k<n;k++) b.push(a.pop()); return n; }
 const isSolved = s => s.every(b => b.length===0 || (b.length===CAP && b.every(x=>x===b[0])));
 const key = s => s.map(b=>b.join("")).sort().join("|");
 
-function solve(start, cap=60000){
+function solve(start, cap=60000, rnd=null){
   const seen = new Set([key(start)]); let nodes = 0;
   function dfs(s, path){
     if(isSolved(s)) return path;
@@ -130,7 +132,7 @@ function solve(start, cap=60000){
     const moves = [];
     for(let i=0;i<s.length;i++) for(let j=0;j<s.length;j++){
       if(i===j || !canPour(s[i], s[j])) continue;
-      const score = (s[j].length? 10:0) + topRun(s[i]) + (s[i].length===topRun(s[i])? 3:0);
+      const score = (s[j].length? 10:0) + topRun(s[i]) + (s[i].length===topRun(s[i])? 3:0) + (rnd? rnd()*6 : 0);
       moves.push([score,i,j]);
     }
     moves.sort((x,y)=>y[0]-x[0]);
@@ -152,24 +154,32 @@ function generate(seedStr, nColors){
     const bottles = []; for(let i=0;i<nColors;i++) bottles.push(pool.slice(i*CAP,(i+1)*CAP));
     bottles.push([],[]);
     if(isSolved(bottles)) continue;
-    const sol = solve(bottles);
-    if(sol) return { bottles, par: sol.length, hint: sol };
+    let sol = solve(bottles);
+    if(sol){
+      // try several differently-ordered searches and keep the shortest solution as par
+      for(let k=0;k<24;k++){ const alt = solve(bottles, 15000, mulberry32(hash(seedStr+":alt"+k))); if(alt && alt.length < sol.length) sol = alt; }
+      return { bottles, par: sol.length };
+    }
   }
-  return null;
+  // fallback (should not happen): plain deal with a loose par
+  const pool = []; for(let c=0;c<nColors;c++) for(let k=0;k<CAP;k++) pool.push(c);
+  const bottles = []; for(let i=0;i<nColors;i++) bottles.push(pool.slice(i*CAP,(i+1)*CAP));
+  bottles.push([],[]); bottles[0].reverse();
+  return { bottles, par: nColors*4 };
 }
 
 /* ---------- game state ---------- */
-let mode = "daily", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
+let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
 
 const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"),1600); }
 
 function startGame(m){
-  mode = m; finished = false; sel = -1; moves = 0; history = [];
+  mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null;
   let n;
   if(m==="daily"){
-    const d = new Date(); seedStr = "daily-" + dateKey(d); n = DAILY_COLORS[d.getDay()];
+    const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
     $("title").textContent = WEEKDAYS[d.getDay()] + " · " + dateKey(d);
   } else {
     const lv = save.level; seedStr = "level-" + lv; n = Math.min(4 + Math.floor((lv-1)/3), 11);
@@ -188,7 +198,7 @@ function render(){
     const el = document.createElement("div");
     el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
     b.forEach(c=>{ const s = document.createElement("div"); s.className="seg"; s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
-    el.addEventListener("click", ()=>tap(i));
+    el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(b.length? ", "+b.length+" layers":", empty")); el.addEventListener("click", ()=>tap(i));
     board.appendChild(el);
   });
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
@@ -210,25 +220,27 @@ function tap(i){
   }
 }
 
-function starsFor(m, par){ return m <= par ? 3 : m <= par*1.4 ? 2 : 1; }
+function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
 
 function win(){
   finished = true;
   const st = starsFor(moves, puzzle.par);
-  save.stars += st;
   let extra = "";
   if(mode==="daily"){
-    const k = dateKey();
+    const k = puzzleDate;
     if(!save.won[k]){
-      const y = new Date(); y.setDate(y.getDate()-1);
-      save.streak = (save.last === dateKey(y)) ? save.streak+1 : 1;
+      save.stars += st;
+      const prev = new Date(k+"T12:00:00"); prev.setDate(prev.getDate()-1);
+      save.streak = (save.last === dateKey(prev)) ? save.streak+1 : 1;
       save.last = k; save.best = Math.max(save.best, save.streak);
       save.won[k] = { moves, stars: st };
+      extra = "Streak: " + save.streak + " 🔥 (best " + save.best + ")";
+    } else {
+      extra = "Practice run: today's result is already saved.";
     }
-    extra = "Streak: " + save.streak + " 🔥 (best " + save.best + ")";
     $("next").textContent = "Done";
   } else {
-    save.level++; extra = "Next: Level " + save.level; $("next").textContent = "Next level";
+    save.stars += st; save.level++; extra = "Next: Level " + save.level; $("next").textContent = "Next level";
   }
   LS.set("save", save); render();
   $("winTitle").textContent = "Solved!";
@@ -239,17 +251,31 @@ function win(){
 
 /* ---------- controls ---------- */
 $("undo").onclick = ()=>{ if(!history.length||finished) return; state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ state = puzzle.bottles.map(b=>b.slice()); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("restart").onclick = ()=>{ plan = null; state = puzzle.bottles.map(b=>b.slice()); history=[]; moves=0; sel=-1; finished=false; render(); };
+/* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
+let plan = null;
+const exactKey = st => st.map(b=>b.join("")).join("|");
+function nextHint(){
+  let idx = plan ? plan.keys.indexOf(exactKey(state)) : -1;
+  if(idx < 0 || idx >= plan.mv.length){
+    const mv = solve(state, 20000); if(!mv || !mv.length) return null;
+    const keys = [], t = state.map(b=>b.slice()); keys.push(exactKey(t));
+    for(const [i,j] of mv){ pour(t,i,j); keys.push(exactKey(t)); }
+    plan = { mv, keys }; idx = 0;
+  }
+  return plan.mv[idx];
+}
 $("hint").onclick = ()=>{
   if(finished) return;
-  const s = solve(state, 20000);
-  if(!s || !s.length){ toast("No hint available"); return; }
-  const [i,j] = s[0]; sel = i; render();
-  const t = $("board").children[j]; if(t){ t.style.transform="translateY(-8px)"; setTimeout(()=>t.style.transform="",900); }
+  const m = nextHint();
+  if(!m){ toast("No hint available"); return; }
+  const [i,j] = m; sel = i; render();
+  const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
 $("mDaily").onclick = ()=>startGame("daily");
 $("mEndless").onclick = ()=>startGame("endless");
-$("next").onclick = ()=>{ $("win").close(); if(mode==="endless") startGame("endless"); };
+$("next").onclick = ()=>$("win").close();
+$("win").addEventListener("close", ()=>{ if(finished && mode==="endless") startGame("endless"); });
 $("share").onclick = async ()=>{
   const st = starsFor(moves, puzzle.par);
   const text = "Color Quest " + (mode==="daily"? dateKey() : "Level "+(save.level-1)) + "\n" + "⭐".repeat(st) + "☆".repeat(3-st) + " · " + moves + " moves (par " + puzzle.par + ")" + (mode==="daily" ? "\n🔥 " + save.streak : "");
@@ -283,6 +309,14 @@ $("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = { strea
 /* streak decay if a day was missed */
 (function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
 
+/* new day while the app was left open */
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState!=="visible") return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
+  if(mode==="daily" && puzzleDate !== dateKey() && (moves===0 || finished)){ startGame("daily"); } else render();
+});
+
 /* install prompt */
 let deferred = null;
 window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred = e; $("install").hidden = false; });
@@ -293,6 +327,8 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
 startGame("daily");
+window.__cq = { nextHint, get state(){ return state; } };
+})();
 </script>
 </body>
 </html>
