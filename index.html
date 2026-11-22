@@ -812,7 +812,7 @@ function renderModifierForecast(){
     const label=modifier.name==="Frozen Reserve"?"Frozen":"Limited";
     el.innerHTML="<small>"+(offset===0?"Today":d.toLocaleDateString(undefined,{weekday:"short"}))+"</small><b>"+icon+"</b><span>"+label+"</span><small>"+(result?"✓ Completed":offset===0?"Play today":"Upcoming")+"</small>";
     el.title=k+" · "+modifier.name+(result?" · Completed":"");
-    el.setAttribute("aria-label",k+" · "+modifier.name+(result?" · completed":""));
+    el.setAttribute("aria-label",(offset===0?"Today · ":"")+k+" · "+modifier.name+(result?" · completed":""));
     forecast.appendChild(el);
   }
   $("modifierHistory").textContent="Completed modifier history · ❄️ Frozen Reserve: "+counts["frozen-reserve"]+" · ⏳ Limited Moves: "+counts["limited-moves"];
