@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   web-quality:
-    name: Web assets and smoke tests
+    name: Web assets, smoke tests and browser gameplay
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -21,10 +21,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Install dependencies
+      - name: Install project dependencies
         run: npm ci
+      - name: Install Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
       - name: Run smoke tests
         run: npm test
+      - name: Run browser gameplay tests
+        run: npm run test:e2e
       - name: Build Capacitor web bundle
         run: npm run web
       - name: Verify bundled artwork
