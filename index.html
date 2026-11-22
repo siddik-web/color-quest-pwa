@@ -59,7 +59,10 @@ button:disabled{opacity:.4}
 .noshape .seg span{display:none}
 footer{display:flex;gap:8px;padding:10px 0 14px}
 footer button{flex:1;min-width:0;padding:10px 2px;font-size:13px;white-space:nowrap}
-dialog{background:var(--panel);color:var(--text);border:0;border-radius:18px;padding:22px;max-width:340px;width:88%;text-align:center}
+dialog{background:var(--panel);color:var(--text);border:0;border-radius:18px;padding:22px;max-width:360px;width:min(92vw,360px);max-height:min(82dvh,720px);overflow:auto;text-align:center;overscroll-behavior:contain}
+dialog button{min-height:42px}
+dialog :focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:380px){dialog{padding:16px}#levelGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.level-tile{min-height:52px}}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 6px}
 .stars{font-size:36px;letter-spacing:4px;margin:8px 0}
@@ -266,7 +269,7 @@ const LS = {
 const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
   coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {};
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {};
 
 /* ---------- sound (synthesised with WebAudio, no files) ---------- */
 const sfx = (()=>{
@@ -514,11 +517,21 @@ function win(){
       save.stars += st;
       coins = 10 + st*5; xp = 20 + st*10;
       if(completedLevel === save.level) save.level = completedLevel + 1;
-      note = "Unlocked: Level " + save.level;
+      const milestoneRewards = {5:50,10:100,25:250,50:500};
+      if(milestoneRewards[completedLevel] && !save.economyMilestones[String(completedLevel)]){
+        const bonus=milestoneRewards[completedLevel];
+        coins += bonus;
+        save.economyMilestones[String(completedLevel)] = true;
+        note = "Level " + completedLevel + " milestone! +" + bonus + " bonus coins · Unlocked: Level " + save.level;
+      } else note = "Unlocked: Level " + save.level;
     } else {
-      previous.stars = Math.max(previous.stars || 0, st);
+      const oldStars = Number(previous.stars) || 0;
+      const improvedStars = Math.max(oldStars, st);
+      save.stars += improvedStars - oldStars;
+      previous.stars = improvedStars;
       previous.bestMoves = Math.min(previous.bestMoves || moves, moves);
       note = "Replay complete · best " + previous.bestMoves + " moves";
+      if(improvedStars > oldStars) note += " · +" + (improvedStars-oldStars) + " star" + (improvedStars-oldStars===1?"":"s");
       fresh = false;
     }
     $("next").textContent = "Continue";
@@ -904,7 +917,9 @@ window.__cq = {
   solve,
   checkDailyReward,
   openTutorial,
-  get tutorialStep(){ return tutorialStep; }
+  get tutorialStep(){ return tutorialStep; },
+  starsFor,
+  get economyMilestones(){ return save.economyMilestones; }
 };
 })();
 </script>
