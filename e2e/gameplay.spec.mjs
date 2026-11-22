@@ -348,6 +348,16 @@ test("source bottle returns to its original board position after pouring", async
   await page.locator("#board .bottle").nth(move[0]).click();
   await page.locator("#board .bottle").nth(move[1]).click();
   await expect(page.locator("#moves")).toContainText("Moves 1");
+  const landingBottle = page.locator("#board .bottle.land");
+  await expect(landingBottle).toHaveCount(1);
+  const landingOffsets = await landingBottle.evaluate(el => ({
+    tx: el.style.getPropertyValue("--tx"),
+    ty: el.style.getPropertyValue("--ty"),
+    rot: el.style.getPropertyValue("--rot")
+  }));
+  expect(landingOffsets.tx).not.toBe("");
+  expect(landingOffsets.ty).not.toBe("");
+  expect(landingOffsets.rot).not.toBe("");
   await page.waitForTimeout(350);
   const after = await page.locator("#board .bottle").nth(move[0]).boundingBox();
   expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
