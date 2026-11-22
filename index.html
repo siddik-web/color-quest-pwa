@@ -775,7 +775,7 @@ $("musicVolume").oninput = ()=>{
 };
 syncSnd();syncMusicControls();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
-$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
+$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); save.ownedCosmetics = {}; save.equippedCosmetics = { bottle:"", board:"", pour:"" }; LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
 /* streak decay if a day was missed */
 (function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
