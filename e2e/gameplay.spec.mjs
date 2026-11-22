@@ -136,11 +136,7 @@ test("generated starting puzzle is solvable and has a valid par score", async ({
       solved: solution ? window.__cq.isSolved((() => {
         const state = p.bottles.map(b => b.slice());
         for (const [from, to] of solution) {
-          const source = state[from], target = state[to];
-          const color = source[source.length - 1];
-          let count = 0;
-          for (let i = source.length - 1; i >= 0 && source[i] === color; i--) count++;
-          for (let i = 0; i < Math.min(count, 4 - target.length); i++) target.push(source.pop());
+          if (!window.__cq.pour(state, from, to)) return state;
         }
         return state;
       })()) : false
@@ -232,11 +228,11 @@ test("tutorial can be reopened from settings and skipped", async ({ page }) => {
 test("replaying a level only credits newly earned stars and improves best moves", async ({ page }) => {
   const result = await page.evaluate(() => {
     const record = { stars: 1, moves: 20, bestMoves: 20 };
-    const firstDelta = window.__cq.applyReplayResult(record, 3);
-    const secondDelta = window.__cq.applyReplayResult(record, 2);
-    return { firstDelta, secondDelta, stars: record.stars, bestMoves: record.bestMoves };
+    const firstDelta = window.__cq.applyReplayResult(record, 3, 15);
+    const secondDelta = window.__cq.applyReplayResult(record, 2, 18);
+    return { firstDelta, secondDelta, stars: record.stars, moves: record.moves, bestMoves: record.bestMoves };
   });
-  expect(result).toEqual({ firstDelta: 2, secondDelta: 0, stars: 3, bestMoves: 20 });
+  expect(result).toEqual({ firstDelta: 2, secondDelta: 0, stars: 3, moves: 18, bestMoves: 15 });
 });
 
 test("dialogs remain within a small mobile viewport and scroll internally", async ({ page }) => {
