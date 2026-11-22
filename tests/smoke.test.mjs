@@ -84,6 +84,10 @@ test("liquid pour animation includes source tilt, stream and receiving feedback"
   assert.match(html, /const started = performance\.now\(\), travelMs = 430/);
   assert.match(html, /function moveDrop\(now\)/);
   assert.match(html, /const controlY = Math\.max\(y1,y2\)/);
+  assert.match(html, /drop\.style\.transform = "translate3d\("/);
+  assert.match(html, /will-change:transform,opacity/);
+  assert.doesNotMatch(html, /drop\.style\.left = \(x-5\)/);
+  assert.doesNotMatch(html, /drop\.style\.top = \(y-5\)/);
   assert.match(html, /stream\.style\.setProperty\("--stream-angle"/);
   assert.match(html, /stream\.style\.setProperty\("--liquid"/);
   assert.match(html, /stream\.remove\(\);/);
