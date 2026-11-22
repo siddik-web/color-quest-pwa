@@ -167,6 +167,59 @@ test("puzzle generator preserves color counts and solvability across difficulty 
   }
 });
 
+test("streak shield protects one missed daily challenge and is consumed only once", async ({ page }) => {
+  await page.evaluate(() => {
+    const dateKey = (date) => date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+    const today = new Date();
+    const twoDaysAgo = new Date(today); twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    localStorage.setItem("cq.save", JSON.stringify({
+      streak: 6, best: 6, last: dateKey(twoDaysAgo), streakFreezes: 1,
+      streakFreezeMilestones: {}, dr: { last: dateKey(today), day: 1 }, tutorialSeen: true
+    }));
+  });
+  await page.reload();
+  const protectedState = await page.evaluate(() => ({
+    streak: window.__cq.save.streak,
+    shields: window.__cq.save.streakFreezes,
+    graceDate: window.__cq.save.streakGraceDate,
+    graceBase: window.__cq.save.streakGraceBase
+  }));
+  const today = await page.evaluate(() => {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  });
+  expect(protectedState).toEqual({ streak: 6, shields: 0, graceDate: today, graceBase: 6 });
+  await page.evaluate(() => window.__cq.syncStreakProtection());
+  expect(await page.evaluate(() => window.__cq.save.streakFreezes)).toBe(0);
+  expect(await page.evaluate(() => window.__cq.save.streak)).toBe(6);
+});
+
+test("seven-day streak milestones award at most one shield per milestone", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const first = window.__cq.awardStreakFreeze(7);
+    const duplicate = window.__cq.awardStreakFreeze(7);
+    const second = window.__cq.awardStreakFreeze(14);
+    const capped = window.__cq.awardStreakFreeze(21);
+    return { first, duplicate, second, capped, shields: window.__cq.save.streakFreezes };
+  });
+  expect(result).toEqual({ first: true, duplicate: false, second: true, capped: false, shields: 2 });
+});
+
+test("streak resets after multiple missed days when no shield is available", async ({ page }) => {
+  await page.evaluate(() => {
+    const dateKey = (date) => date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0") + "-" + String(date.getDate()).padStart(2, "0");
+    const today = new Date();
+    const fourDaysAgo = new Date(today); fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+    localStorage.setItem("cq.save", JSON.stringify({
+      streak: 9, best: 9, last: dateKey(fourDaysAgo), streakFreezes: 0,
+      streakFreezeMilestones: {}, dr: { last: dateKey(today), day: 1 }, tutorialSeen: true
+    }));
+  });
+  await page.reload();
+  expect(await page.evaluate(() => window.__cq.save.streak)).toBe(0);
+  expect(await page.evaluate(() => window.__cq.save.streakFreezes)).toBe(0);
+});
+
 test("level map shows unlocked progress and prevents locked-level selection", async ({ page }) => {
   await page.locator("#mEndless").click();
   await expect(page.locator("#levelMapBtn")).toBeVisible();
