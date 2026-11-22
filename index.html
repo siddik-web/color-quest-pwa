@@ -158,16 +158,16 @@ footer button{display:flex;align-items:center;justify-content:center;gap:2px;min
 .bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
 .seg{position:relative;overflow:hidden}
 .seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
-.stream{position:fixed;width:6px;border-radius:99px;z-index:8;pointer-events:none;transform-origin:top center;background:linear-gradient(90deg,#ffffff55,var(--liquid) 38%,var(--liquid) 68%,#ffffffbb);border:1px solid #ffffff66;filter:drop-shadow(0 0 4px var(--liquid));animation:liquid-flow .16s ease-out both}
+.stream{position:fixed;width:5px;border-radius:99px;z-index:8;pointer-events:none;transform-origin:top center;background:linear-gradient(90deg,#ffffff55,var(--liquid) 38%,var(--liquid) 68%,#ffffffbb);border:1px solid #ffffff66;animation:liquid-flow .16s ease-out both;will-change:transform,opacity}
 .stream:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,#ffffffaa 48%,transparent);animation:streamShimmer .22s linear infinite}
 @keyframes liquid-flow{from{transform:rotate(var(--stream-angle,0deg)) scaleY(.08)}to{transform:rotate(var(--stream-angle,0deg)) scaleY(1)}}
 @keyframes streamShimmer{from{transform:translateY(-35%)}to{transform:translateY(35%)}}
-.bottle.pouring{z-index:6;transform-origin:50% 12%;filter:drop-shadow(0 10px 10px #0006);animation:bottle-tilt .28s cubic-bezier(.2,.8,.2,1) forwards}
+.bottle.pouring{z-index:6;transform-origin:50% 12%;animation:bottle-tilt .28s cubic-bezier(.2,.8,.2,1) forwards;will-change:transform}
 @keyframes bottle-tilt{to{transform:translate(var(--pour-x),var(--pour-y)) rotate(var(--pour-rotation))}}
-.liquid-drop{position:fixed;width:10px;height:13px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;box-shadow:0 0 9px var(--liquid);transform:rotate(45deg);animation:drop-splash .34s ease-in both}
+.liquid-drop{position:fixed;width:9px;height:11px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;transform:translate3d(0,0,0) rotate(45deg);will-change:transform,opacity}
 @keyframes drop-splash{0%{opacity:0;transform:translateY(-8px) scale(.55) rotate(45deg)}45%{opacity:1;transform:translateY(2px) scale(1) rotate(45deg)}100%{opacity:0;transform:translateY(13px) scale(.35) rotate(45deg)}}
-.bottle.receiving{animation:receive .38s cubic-bezier(.2,.8,.2,1)}
-@keyframes receive{0%,100%{filter:brightness(1)}35%{filter:brightness(1.32) drop-shadow(0 0 9px var(--liquid))}}
+.bottle.receiving{animation:receive .38s ease-out}
+@keyframes receive{0%,100%{box-shadow:inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}35%{box-shadow:0 0 0 2px var(--liquid),inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}}
 @media(prefers-reduced-motion:reduce){.stream:after,.stream,.liquid-drop,.bottle.pouring{animation:none}.bottle.receiving{animation:none}}
 #win[open]{animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
 @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -569,12 +569,11 @@ function doPour(a, b){
       const inv = 1-p;
       const x = inv*inv*x1 + 2*inv*p*controlX + p*p*x2;
       const y = inv*inv*y1 + 2*inv*p*controlY + p*p*y2;
-      drop.style.left = (x-5)+"px";
-      drop.style.top = (y-5)+"px";
+      // Animate with compositor-only transforms; avoid per-frame layout from left/top writes.
+      drop.style.transform = "translate3d("+(x-x1)+"px,"+(y-y1)+"px,0) rotate(45deg) scale("+(.78+Math.sin(raw*Math.PI)*.22)+")";
       drop.style.opacity = String(Math.min(1,raw*5,(1-raw)*5));
-      drop.style.transform = "rotate(45deg) scale("+(.78+Math.sin(raw*Math.PI)*.22)+")";
       if(raw<1) requestAnimationFrame(moveDrop);
-      else { drop.style.left=(x2-5)+"px";drop.style.top=(y2-5)+"px";drop.style.opacity="0"; }
+      else { drop.style.transform = "translate3d("+(x2-x1)+"px,"+(y2-y1)+"px,0) rotate(45deg) scale(.5)";drop.style.opacity="0"; }
     }
     requestAnimationFrame(moveDrop);
   },280);
