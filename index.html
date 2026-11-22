@@ -145,7 +145,7 @@ footer button{display:flex;align-items:center;justify-content:center;gap:2px;min
 @keyframes liquid-flow{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0)}}
 @keyframes streamShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
 .bottle.pouring{z-index:6;transform-origin:50% 12%;filter:drop-shadow(0 10px 10px #0006);animation:bottle-tilt .28s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes bottle-tilt{to{transform:rotate(var(--pour-rotation))}}
+@keyframes bottle-tilt{to{transform:translate(var(--pour-x),var(--pour-y)) rotate(var(--pour-rotation))}}
 .liquid-drop{position:fixed;width:10px;height:13px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;box-shadow:0 0 9px var(--liquid);transform:rotate(45deg);animation:drop-splash .34s ease-in both}
 @keyframes drop-splash{0%{opacity:0;transform:translateY(-8px) scale(.55) rotate(45deg)}45%{opacity:1;transform:translateY(2px) scale(1) rotate(45deg)}100%{opacity:0;transform:translateY(13px) scale(.35) rotate(45deg)}}
 .bottle.receiving{animation:receive .38s cubic-bezier(.2,.8,.2,1)}
@@ -513,6 +513,8 @@ function doPour(a, b){
   ty = (tr.top - 12) - (sr.top + 18);
   sEl.style.zIndex = 6;
   sEl.style.setProperty("--pour-rotation", rot+"deg");
+  sEl.style.setProperty("--pour-x", tx+"px");
+  sEl.style.setProperty("--pour-y", ty+"px");
   sfx.pour();
   const pourTimer = setTimeout(()=>{
     const tilted = sEl.getBoundingClientRect();
