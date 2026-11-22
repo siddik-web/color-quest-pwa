@@ -4,7 +4,7 @@ import { build } from "esbuild";
 
 rmSync("www", { recursive: true, force: true });
 mkdirSync("www", { recursive: true });
-for (const f of ["index.html", "manifest.webmanifest", "sw.js", "icons"]) cpSync(f, "www/" + f, { recursive: true });
+for (const f of ["index.html", "manifest.webmanifest", "sw.js", "icons", "assets"]) cpSync(f, "www/" + f, { recursive: true });
 
 await build({
   entryPoints: ["native/entry.js"],

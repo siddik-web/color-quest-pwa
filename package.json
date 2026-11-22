@@ -6,7 +6,9 @@
   "scripts": {
     "web": "node scripts/copy-web.mjs",
     "sync": "node scripts/copy-web.mjs && cap sync android",
-    "open": "cap open android"
+    "open": "cap open android",
+    "test": "node --test",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.4.2",

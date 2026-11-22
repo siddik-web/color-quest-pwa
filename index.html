@@ -28,7 +28,20 @@ button{font:inherit;color:var(--text);background:var(--panel);border:0;border-ra
 button:active{transform:scale(.97)}
 button.on{background:var(--accent);color:#1b1b1b;font-weight:700}
 button:disabled{opacity:.4}
-#info{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);padding:2px 4px 8px}
+#info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted);padding:2px 4px 8px}
+#levelMapBtn{padding:6px 10px;font-size:12px;white-space:nowrap}
+#tutorialStep{min-height:112px;display:flex;flex-direction:column;justify-content:center;gap:8px;margin:12px 0}
+#tutorialStep .tutorial-icon{font-size:38px}
+#tutorialStep p{margin:0;color:var(--muted);line-height:1.5}
+#tutorialProgress{display:flex;justify-content:center;gap:6px;margin:10px 0}
+#tutorialProgress i{width:7px;height:7px;border-radius:50%;background:#ffffff35}
+#tutorialProgress i.active{background:var(--accent);transform:scale(1.25)}
+#levelGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:14px 0;max-height:48vh;overflow:auto}
+.level-tile{min-height:58px;padding:7px 3px;border-radius:12px;background:var(--glass);border:1px solid #ffffff25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:800}
+.level-tile small{font-size:10px;color:var(--muted)}
+.level-tile.current{outline:2px solid var(--accent);background:#ffd24a22}
+.level-tile.locked{opacity:.35;filter:grayscale(1)}
+.level-tile.completed{border-color:#7dffb0}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:22px 14px;justify-content:center;align-content:center;padding:10px 0}
 .bottle{width:var(--bw,48px);height:var(--bh,168px);border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
 .bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
@@ -46,16 +59,34 @@ button:disabled{opacity:.4}
 .noshape .seg span{display:none}
 footer{display:flex;gap:8px;padding:10px 0 14px}
 footer button{flex:1;min-width:0;padding:10px 2px;font-size:13px;white-space:nowrap}
-dialog{background:var(--panel);color:var(--text);border:0;border-radius:18px;padding:22px;max-width:340px;width:88%;text-align:center}
+dialog{background:var(--panel);color:var(--text);border:0;border-radius:18px;padding:22px;max-width:360px;width:min(92vw,360px);max-height:min(82dvh,720px);overflow:auto;text-align:center;overscroll-behavior:contain}
+dialog button{min-height:42px}
+dialog :focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:380px){dialog{padding:16px}#levelGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.level-tile{min-height:52px}}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 dialog h2{margin:0 0 6px}
 .stars{font-size:36px;letter-spacing:4px;margin:8px 0}
 dialog .row{display:flex;gap:8px;margin-top:14px}
 dialog .row button{flex:1}
+#journeySummary{margin:8px 0;padding:10px;border-radius:12px;background:var(--glass);font-size:13px;font-weight:700;color:#e7eeff}
+#journeyPath{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:8px 0 14px}
+.journey-day{min-width:0;padding:7px 2px;border-radius:9px;background:var(--glass);text-align:center;font-size:10px;color:var(--muted)}
+.journey-day b{display:block;font-size:15px;color:var(--text);margin:3px 0}
+.journey-day.done{background:#245d4a;color:#b9ffd4}
+.journey-day.done b{color:#b9ffd4}
+.journey-day.today{outline:2px solid var(--accent)}
+.journey-day.missed{opacity:.45}
 #cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0;font-size:12px}
 #cal div{aspect-ratio:1;border-radius:6px;background:var(--glass);display:flex;align-items:center;justify-content:center;color:var(--muted)}
 #cal div.won{background:#4cd98a;color:#0b2a1a;font-weight:700}
 #cal div.today{outline:2px solid var(--accent)}
+#modifierForecast{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 12px}
+.forecast-day{min-width:0;padding:8px 3px;border-radius:10px;background:var(--glass);font-size:10px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.forecast-day b{font-size:17px;color:var(--text)}
+.forecast-day small{font-size:9px;line-height:1.2}
+.forecast-day.done{background:#245d4a;color:#b9ffd4}
+.forecast-day.today{outline:2px solid var(--accent)}
+#modifierHistory{font-size:11px;color:var(--muted);line-height:1.5;margin:0 0 10px}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#000c;padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 #lvrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:0 2px 4px}
@@ -78,31 +109,144 @@ dialog .row button{flex:1}
 .dr.now{outline:2px solid var(--accent);background:rgba(255,210,74,.15)}
 #confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none}
 </style>
+<style>
+/* Color Quest 2D graphics refresh */
+:root{--bg:#172044;--panel:#263568;--text:#f7f8ff;--muted:#bbc7ee;--accent:#ffd24a;--glass:rgba(255,255,255,.14)}
+html,body{background:var(--bg)}
+h1{font-size:21px;font-weight:900;letter-spacing:.2px;text-shadow:0 2px 0 #101a42,0 4px 14px #0008}
+.chip{background:linear-gradient(180deg,#5269b2,#293b76);border:1px solid #91a9ed;border-bottom-width:3px;color:#e7eeff;box-shadow:0 3px 8px #0003}
+nav button,footer button{background:linear-gradient(180deg,#536dc0,#344988);border:1px solid #9bb8ff;border-bottom:4px solid #1c2c61;box-shadow:0 4px 8px #0004;text-shadow:0 1px 2px #18214a}
+nav button.on,button.on{background:linear-gradient(180deg,#fff09b,#ffbe31);border-color:#fff3b6;border-bottom-color:#b97413;color:#422708;text-shadow:none;box-shadow:0 4px 10px #0004}
+button:disabled{filter:saturate(.55)}
+#board{filter:drop-shadow(0 8px 12px #0002)}
+/* Optical glass bottle: clear walls, rounded heavy base, polished lip and reflected highlights */
+.bottle{
+  border:3px solid rgba(226,245,255,.78);
+  border-top:3px solid rgba(255,255,255,.98);
+  border-radius:13px 13px 22px 22px;
+  background:linear-gradient(90deg,rgba(255,255,255,.48) 0%,rgba(205,235,255,.16) 9%,rgba(255,255,255,.035) 25%,rgba(255,255,255,.025) 72%,rgba(210,239,255,.18) 90%,rgba(255,255,255,.52) 100%);
+  box-shadow:inset 3px 0 5px rgba(255,255,255,.52),inset -3px 0 6px rgba(157,207,244,.35),inset 0 -8px 10px rgba(195,231,255,.17),0 7px 14px rgba(0,0,0,.28),0 1px 2px rgba(255,255,255,.24);
+  overflow:hidden;
+}
+.bottle:before{
+  content:"";position:absolute;left:-4px;right:-4px;top:-5px;height:13px;
+  border-radius:50%;
+  background:linear-gradient(180deg,#ffffff 0%,#eaf7ff 35%,#8eb6d4 58%,#f8fdff 78%,#b6d6ec 100%);
+  border:2px solid rgba(255,255,255,.96);
+  box-shadow:0 2px 4px rgba(0,0,0,.28),inset 0 1px 2px #fff;
+  z-index:3;pointer-events:none;
+}
+.bottle.sel{box-shadow:0 0 0 3px #ffdf63,0 12px 18px #0005,inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}
+.bottle.done{border-color:#9adbc1;box-shadow:0 0 10px rgba(91,190,151,.34),inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}
+.seg{
+  border-radius:6px;
+  box-shadow:inset 0 3px 5px rgba(255,255,255,.58),inset 0 -4px 6px rgba(0,0,0,.22),inset 2px 0 3px rgba(255,255,255,.2),0 1px 2px rgba(0,0,0,.18);
+}
+.seg:first-child{border-bottom-left-radius:16px;border-bottom-right-radius:16px}
+#info{font-weight:700;color:#d5defd}
+footer button{font-weight:750;font-size:12px}
+dialog{background:linear-gradient(145deg,#354a8d,#1d2b5a);border:2px solid #859fe9;box-shadow:0 18px 55px #0008}
+dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
+@media(max-width:380px){nav{gap:5px}nav button{font-size:11px;padding:9px 1px}footer{gap:5px}footer button{font-size:11px}}
+</style>
+<style>
+
+
+/* Final polish: custom vector controls, mobile safe-area and tactile feedback */
+.brand-mascot{width:34px;height:30px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 2px 3px #101a42)}
+.nav-icon{display:block;width:27px;height:27px;margin:0 auto;filter:drop-shadow(0 2px 2px #101a42)}
+.action-icon{width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 1px 1px #14204a)}
+nav button[aria-label]{display:flex;align-items:center;justify-content:center;min-height:48px}
+footer{flex-shrink:0;align-items:stretch;padding:10px 0 max(16px,env(safe-area-inset-bottom))}
+footer button{display:flex;align-items:center;justify-content:center;gap:2px;min-height:46px;border-radius:14px}
+#board{min-height:190px;min-width:0}
+.bottle{isolation:isolate}
+.bottle:after{content:"";position:absolute;z-index:2;left:5px;top:14px;bottom:10px;width:5px;border-radius:99px;background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.34) 48%,rgba(255,255,255,.08));box-shadow:3px 0 5px rgba(255,255,255,.13),inset 1px 0 1px #fff8;pointer-events:none}
+.bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
+.seg{position:relative;overflow:hidden}
+.seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
+/* Match main-branch bottle travel, tilt and landing exactly. */
+.bottle.pouring{z-index:5;transition:transform .3s ease;will-change:transform}
+.stream{position:fixed;width:6px;border-radius:3px;transform-origin:top;animation:streamIn .22s ease-out forwards;z-index:4;pointer-events:none}
+@keyframes streamIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.bottle.pouring,.stream{animation:none;transition:none}}
+.liquid-drop{position:fixed;width:9px;height:11px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;transform:translate3d(0,0,0) rotate(45deg);will-change:transform,opacity}
+@keyframes drop-splash{0%{opacity:0;transform:translateY(-8px) scale(.55) rotate(45deg)}45%{opacity:1;transform:translateY(2px) scale(1) rotate(45deg)}100%{opacity:0;transform:translateY(13px) scale(.35) rotate(45deg)}}
+.bottle.receiving{animation:receive .38s ease-out}
+@keyframes receive{0%,100%{box-shadow:inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}35%{box-shadow:0 0 0 2px var(--liquid),inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466}}
+@media(prefers-reduced-motion:reduce){.stream:after,.stream,.liquid-drop,.bottle.pouring{animation:none}.bottle.receiving{animation:none}}
+#win[open]{animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-offset:3px}
+@media(max-height:700px){#board{min-height:150px;gap:14px 10px}.bottle{max-height:min(var(--bh),27vh)}header{padding-top:7px}nav{margin:4px 0 7px}footer{padding-top:6px}}
+@media(max-width:380px){.brand-mascot{width:29px;height:26px}.action-icon{width:17px;height:17px;margin-right:2px}footer button{font-size:11px}.nav-icon{width:24px;height:24px}}
+@media(prefers-reduced-motion:reduce){#win[open]{animation:none}button:active{transform:none}}
+
+</style>
+<style>
+/* Daily and weekly quest panel */
+#questList{max-height:52vh;overflow:auto;text-align:left}
+.quest-row{display:flex;align-items:center;gap:10px;padding:11px;margin:8px 0;border:1px solid #ffffff24;border-radius:12px;background:#ffffff0a}
+.quest-copy{flex:1;min-width:0}.quest-copy b{display:block;font-size:13px}.quest-copy small{color:var(--muted);font-size:11px}
+.quest-progress{height:6px;background:#ffffff20;border-radius:99px;overflow:hidden;margin-top:7px}.quest-progress i{display:block;height:100%;background:linear-gradient(90deg,#7dffb0,var(--accent));border-radius:99px}
+.quest-row button{min-width:76px;padding:8px;font-size:12px}
+/* Collectible cosmetic shop */
+.shop-section{margin:16px 0 8px;text-align:left}
+.shop-section h3{font-size:13px;letter-spacing:.5px;color:var(--muted);margin:0 0 8px;text-transform:uppercase}
+.cosmetic-row{display:flex;align-items:center;gap:10px;padding:10px;margin:8px 0;border:1px solid #ffffff22;border-radius:13px;background:#ffffff0a;text-align:left}
+.cosmetic-preview{width:48px;height:48px;flex:0 0 48px;border-radius:12px;display:grid;place-items:center;font-size:26px;background:linear-gradient(145deg,#ffffff24,#ffffff08);border:1px solid #ffffff25}
+.cosmetic-copy{flex:1;min-width:0}
+.cosmetic-copy b{display:block;font-size:13px}
+.cosmetic-copy small{display:block;color:var(--muted);font-size:11px;line-height:1.35;margin-top:3px}
+.cosmetic-row button{min-width:82px;padding:8px 9px;font-size:12px}
+#board.cosmetic-aurora{background:radial-gradient(ellipse at 50% 50%,#4ee7cf18,transparent 68%);border-radius:28px}
+#board.cosmetic-stardust{background:radial-gradient(circle at 20% 25%,#ffffff17 1px,transparent 2px),radial-gradient(circle at 75% 70%,#8e9dff20 1px,transparent 2px);background-size:42px 42px,57px 57px;border-radius:28px}
+#board.cosmetic-sunset{background:radial-gradient(ellipse at 50% 100%,#ff9a4a20,transparent 65%);border-radius:28px}
+#board.cosmetic-gold .bottle{border-color:#ffd77a;box-shadow:inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466,0 0 8px #ffc85744}
+#board.cosmetic-gold .bottle:before{border-color:#fff0bd;background:linear-gradient(180deg,#fff8d8,#e9b94f 55%,#fff0bd)}
+#board.cosmetic-aurora-glass .bottle{box-shadow:inset 3px 0 5px #fff9,inset -3px 0 6px #9dcff488,0 0 13px #62efd044}
+#board.cosmetic-prism .bottle{border-color:#d8c5ff;box-shadow:inset 3px 0 5px #fff9,inset -3px 0 6px #bca1ff77,0 0 12px #b58cff55}
+#board.cosmetic-prism .bottle:before{background:linear-gradient(90deg,#ff9bd8,#fff,#8ceaff,#d9a4ff)}
+body.cosmetic-rainbow .stream{background:linear-gradient(180deg,#ff5a5f,#ffa63d,#ffe14d,#7ddc4a,#3fa7ff,#c05cff)!important}
+body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24a)!important;box-shadow:0 0 9px #ffe477aa}
+#modifierStatus{font-size:11px;color:#b8d9ff;text-align:center;min-height:16px}
+.bottle.frozen{opacity:.68;filter:saturate(.55);position:relative}
+.bottle.frozen:after{content:"❄️";position:absolute;inset:0;display:grid;place-items:center;font-size:26px;background:#bdeaff35;border:2px solid #bdeaffaa;border-radius:16px;backdrop-filter:blur(2px)}
+</style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>🎨 Color Quest</h1>
-    <div class="chips"><span class="chip">🔥 <b id="streak">0</b></span><span class="chip">⭐ <b id="stars">0</b></span><span class="chip">🪙 <b id="coins">0</b></span></div>
+    <h1><img class="brand-mascot" src="assets/2d/mascot/chameleon.svg" alt="">Color Quest</h1>
+    <div class="chips"><span class="chip">🔥 <b id="streak">0</b> <b id="streakFreeze" aria-label="Streak shields available"></b></span><span class="chip">⭐ <b id="stars">0</b></span><span class="chip">🪙 <b id="coins">0</b></span></div>
   </header>
   <div id="lvrow"><span id="plv"></span><div class="bar"><i id="xpfill"></i></div><span id="xptxt"></span></div>
   <nav>
     <button id="mDaily" class="on">Daily</button>
     <button id="mEndless">Endless</button>
-    <button id="mCal" aria-label="Calendar">📅</button>
-    <button id="mAch" aria-label="Trophies">🏆</button>
-    <button id="mShop" aria-label="Shop">🛍️</button>
-    <button id="mSet" aria-label="Settings">⚙️</button>
+    <button id="mCal" aria-label="Calendar"><img class="nav-icon" src="assets/2d/icons/calendar.svg" alt=""></button>
+    <button id="mAch" aria-label="Trophies"><img class="nav-icon" src="assets/2d/icons/trophy.svg" alt=""></button>
+    <button id="mQuest" aria-label="Quests">🎯</button>
+    <button id="mShop" aria-label="Shop"><img class="nav-icon" src="assets/2d/icons/shop.svg" alt=""></button>
+    <button id="mSet" aria-label="Settings"><img class="nav-icon" src="assets/2d/icons/settings.svg" alt=""></button>
   </nav>
-  <div id="info"><span id="title"></span><span id="moves"></span></div>
+  <div id="info"><span id="title"></span><span id="moves"></span><button id="levelMapBtn" hidden>🗺 Levels</button></div>
+  <div id="modifierStatus" aria-live="polite"></div>
   <div id="board"></div>
   <footer>
-    <button id="undo">↶ Undo</button>
-    <button id="hint">💡 Hint</button>
-    <button id="restart">⟲ Reset</button>
-    <button id="bottle">🧪 +1 · 30🪙</button>
+    <button id="undo"><img class="action-icon" src="assets/2d/icons/undo.svg" alt="">Undo</button>
+    <button id="hint"><img class="action-icon" src="assets/2d/icons/hint.svg" alt="">Hint</button>
+    <button id="restart"><img class="action-icon" src="assets/2d/icons/reset.svg" alt="">Reset</button>
+    <button id="bottle"><img class="action-icon" src="assets/2d/icons/extra-bottle.svg" alt="">+1 · 30🪙</button>
   </footer>
 </div>
+
+<dialog id="tutorialDlg">
+  <h2 id="tutorialTitle">Welcome to Color Quest!</h2>
+  <div id="tutorialProgress" aria-label="Tutorial progress"></div>
+  <div id="tutorialStep"></div>
+  <div class="row"><button id="tutorialSkip">Skip</button><button id="tutorialNext" class="on">Next</button></div>
+</dialog>
 
 <dialog id="win">
   <h2 id="winTitle">Solved!</h2>
@@ -114,15 +258,43 @@ dialog .row button{flex:1}
 
 <dialog id="calDlg">
   <h2 id="calTitle"></h2>
+  <div id="journeySummary"></div>
+  <div id="journeyPath" aria-label="Recent daily challenge journey"></div>
+  <h3 style="font-size:13px;text-align:left;margin:12px 0 6px">Upcoming daily challenges</h3>
+  <div id="modifierForecast" aria-label="Upcoming daily challenge modifiers"></div>
+  <div id="modifierHistory" aria-live="polite"></div>
   <div id="cal"></div>
   <div class="row"><button id="calClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="questDlg">
+  <h2>🎯 Quests</h2>
+  <div id="questSummary" style="color:var(--muted);font-size:13px;margin:8px 0"></div>
+  <div id="questList"></div>
+  <div class="row"><button id="questClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="challengeFail" aria-labelledby="challengeFailTitle">
+  <h2 id="challengeFailTitle">Move limit reached</h2>
+  <p style="color:var(--muted)">This challenge needs a few fewer pours. Your level progress is safe — try again with a fresh board.</p>
+  <div class="row"><button id="retryChallenge" class="on">Try again</button></div>
+</dialog>
+
+<dialog id="levelDlg">
+  <h2>🗺 Level Journey</h2>
+  <div id="levelSummary" style="color:var(--muted);font-size:13px"></div>
+  <div id="levelGrid" aria-label="Endless level selection"></div>
+  <div class="row"><button id="levelClose" class="on">Close</button></div>
 </dialog>
 
 <dialog id="setDlg">
   <h2>Settings</h2>
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
   <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
-  <div class="row"><button id="sndBtn">Sound: On</button></div>
+  <div class="row"><button id="howToBtn">📘 How to play</button></div>
+  <div class="row"><button id="sndBtn">Sound effects: On</button></div>
+  <div class="row"><button id="musicBtn">Background music: On</button></div>
+  <div class="row" style="display:block;text-align:left"><label for="musicVolume" style="display:block;color:var(--muted);font-size:13px;margin-bottom:8px">Music volume <span id="musicVolumeValue">18%</span></label><input id="musicVolume" type="range" min="0" max="100" value="18" style="width:100%;accent-color:var(--accent)"></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
@@ -162,6 +334,7 @@ dialog .row button{flex:1}
 (()=>{
 "use strict";
 const CAP = 4;
+// Vivid, high-contrast liquid palette restored from the original game. Keep index order stable for saved puzzles.
 let COLORS = ["#ff5a5f","#ffa63d","#ffe14d","#7ddc4a","#27c3a6","#3fa7ff","#6c63ff","#c05cff","#ff6fb5","#9a6b45","#9aa3b2","#1fd1ff"];
 const SYMBOLS = ["●","▲","■","◆","★","✚","♥","☾","✖","▼","◐","☀"];
 const DAILY_COLORS = [7,5,6,7,6,8,9]; // Sun..Sat
@@ -172,46 +345,75 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem("cq."+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
-const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
-  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
+const DEF = { streak:0, best:0, last:null, streakFreezes:0, streakFreezeMilestones:{}, streakGraceDate:null, streakGraceBase:0, won:{}, stars:0, level:1, cb:false, snd:true, music:true, musicVol:0.18,
+  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr);
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {}; save.streakFreezes=Math.max(0,Number(save.streakFreezes)||0); save.streakFreezeMilestones=save.streakFreezeMilestones||{}; save.ownedCosmetics = Object.assign({}, save.ownedCosmetics); save.equippedCosmetics = Object.assign({bottle:"",board:"",pour:""}, save.equippedCosmetics);
 
-/* ---------- sound (synthesised with WebAudio, no files) ---------- */
+/* ---------- original procedural sound + adaptive ambient music (no external files) ---------- */
 const sfx = (()=>{
-  let ctx = null, master = null;
-  const on = ()=> save.snd !== false;
+  let ctx=null, master=null, musicBus=null, musicTimer=null, musicStep=0;
+  const on=()=>save.snd!==false;
+  const musicOn=()=>save.music!==false;
   function init(){
     if(ctx) return true;
-    try{ const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
-      ctx = new AC(); master = ctx.createGain(); master.gain.value = .28; master.connect(ctx.destination); }catch(e){ return false; }
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+      ctx=new AC();master=ctx.createGain();master.gain.value=.28;master.connect(ctx.destination);
+      musicBus=ctx.createGain();musicBus.gain.value=0;musicBus.connect(ctx.destination);
+    }catch(e){return false;}
     return true;
   }
-  function ready(){ if(!on() || !init()) return false; if(ctx.state === "suspended") ctx.resume(); return true; }
-  function tone(f, t0, dur, type, vol, f2){
-    const now = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(f, now + t0);
-    if(f2) o.frequency.exponentialRampToValueAtTime(f2, now + t0 + dur);
-    g.gain.setValueAtTime(.0001, now + t0); g.gain.exponentialRampToValueAtTime(vol, now + t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, now + t0 + dur);
-    o.connect(g); g.connect(master); o.start(now + t0); o.stop(now + t0 + dur + .02);
+  function ready(){if(!init())return false;if(ctx.state==="suspended")ctx.resume().catch(()=>{});return true;}
+  function tone(f,t0,dur,type,vol,f2){
+    if(!ready()||!on())return;
+    const now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,now+t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,now+t0+dur);
+    g.gain.setValueAtTime(.0001,now+t0);g.gain.exponentialRampToValueAtTime(vol,now+t0+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t0+dur);
+    o.connect(g);g.connect(master);o.start(now+t0);o.stop(now+t0+dur+.02);
+  }
+  function musicNote(freq,when,duration,volume,type="sine"){
+    const o=ctx.createOscillator(),g=ctx.createGain(),filter=ctx.createBiquadFilter();
+    o.type=type;o.frequency.setValueAtTime(freq,when);filter.type="lowpass";filter.frequency.value=1800;
+    g.gain.setValueAtTime(.0001,when);g.gain.linearRampToValueAtTime(volume,when+.035);g.gain.setTargetAtTime(.0001,when+duration*.55,duration*.22);
+    o.connect(filter);filter.connect(g);g.connect(musicBus);o.start(when);o.stop(when+duration);
+  }
+  const scale=[261.63,293.66,349.23,392,440,523.25,587.33,698.46];
+  function scheduleMusic(){
+    if(!ready()||!musicOn())return;
+    const now=ctx.currentTime, step=musicStep++%16, root=[0,3,5,4][Math.floor(step/4)];
+    const melody=[0,4,2,5,4,2,1,3,0,2,4,7,5,3,2,1][step];
+    const when=now+.025;
+    musicNote(scale[melody],when,.42,.075,"sine");
+    if(step%4===0){
+      const chord=[scale[root],scale[(root+2)%8],scale[(root+4)%8]];
+      chord.forEach((freq,i)=>musicNote(freq/2,when,.95,.022,"triangle"));
+    }
+  }
+  function syncMusic(){
+    if(!ready())return;
+    if(ctx.state==="suspended")ctx.resume().catch(()=>{});
+    const target=musicOn()?Math.max(0,Math.min(1,Number(save.musicVol??.18))):0;
+    musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setTargetAtTime(target,ctx.currentTime,.18);
+    if(musicOn()&&!musicTimer){musicStep=0;scheduleMusic();musicTimer=setInterval(scheduleMusic,360);}
+    if(!musicOn()&&musicTimer){clearInterval(musicTimer);musicTimer=null;}
   }
   function pour(){
-    if(!ready()) return;
-    const dur = .55, len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-    for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
-    bp.frequency.setValueAtTime(500, ctx.currentTime); bp.frequency.linearRampToValueAtTime(1400, ctx.currentTime + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(.55, ctx.currentTime + .12); g.gain.linearRampToValueAtTime(.0001, ctx.currentTime + dur);
-    src.connect(bp); bp.connect(g); g.connect(master); src.start();
+    if(!ready()||!on())return;
+    const dur=.55,len=Math.floor(ctx.sampleRate*dur),buf=ctx.createBuffer(1,len,ctx.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    const src=ctx.createBufferSource();src.buffer=buf;const bp=ctx.createBiquadFilter();bp.type="bandpass";bp.Q.value=2.5;
+    bp.frequency.setValueAtTime(500,ctx.currentTime);bp.frequency.linearRampToValueAtTime(1400,ctx.currentTime+dur);
+    const g=ctx.createGain();g.gain.setValueAtTime(.0001,ctx.currentTime);g.gain.linearRampToValueAtTime(.55,ctx.currentTime+.12);g.gain.linearRampToValueAtTime(.0001,ctx.currentTime+dur);
+    src.connect(bp);bp.connect(g);g.connect(master);src.start();
   }
+  document.addEventListener("pointerdown",()=>{if(musicOn())syncMusic();},{once:true,passive:true});
   return {
-    select(){ if(ready()) tone(620, 0, .07, "sine", .35); },
-    bad(){ if(ready()) tone(170, 0, .12, "square", .18, 110); },
-    undo(){ if(ready()) tone(420, 0, .09, "triangle", .3, 260); },
-    pour,
-    done(){ if(!ready()) return; tone(880, 0, .18, "sine", .3); tone(1320, .09, .25, "sine", .28); },
-    win(){ if(!ready()) return; [523.25, 659.25, 783.99, 1046.5].forEach((f,k)=>tone(f, k*.11, .3, "triangle", .35)); }
+    select(){tone(620,0,.07,"sine",.35);},bad(){tone(170,0,.12,"square",.18,110);},undo(){tone(420,0,.09,"triangle",.3,260);},pour,
+    done(){tone(880,0,.18,"sine",.3);tone(1320,.09,.25,"sine",.28);},
+    win(){[523.25,659.25,783.99,1046.5].forEach((f,k)=>tone(f,k*.11,.3,"triangle",.35));},
+    syncMusic, setMusicVolume(){syncMusic();}
   };
 })();
 const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -226,7 +428,7 @@ function topRun(b){ if(!b.length) return 0; const c = topOf(b); let n = 0; for(l
 function canPour(a, b){ if(!a.length || b.length>=CAP) return false; if(b.length && topOf(b)!==topOf(a)) return false; if(!b.length && a.every(x=>x===a[0])) return false; return true; }
 function pour(state, i, j){ const a = state[i], b = state[j]; const n = Math.min(topRun(a), CAP-b.length); for(let k=0;k<n;k++) b.push(a.pop()); return n; }
 const isSolved = s => s.every(b => b.length===0 || (b.length===CAP && b.every(x=>x===b[0])));
-const key = s => s.map(b=>b.join("")).sort().join("|");
+const key = s => JSON.stringify(s);
 
 function solve(start, cap=60000, rnd=null){
   const seen = new Set([key(start)]); let nodes = 0;
@@ -250,6 +452,17 @@ function solve(start, cap=60000, rnd=null){
   return dfs(start.map(b=>b.slice()), []);
 }
 
+function levelColorCount(level){ return Math.min(4 + Math.floor((Math.max(1, level)-1)/3), 11); }
+function difficultyForLevel(level){
+  if(level <= 6) return "Easy";
+  if(level <= 12) return "Medium";
+  if(level <= 18) return "Hard";
+  if(level <= 30) return "Expert";
+  if(level <= 50) return "Master";
+  if(level <= 75) return "Grandmaster";
+  return "Legend";
+}
+
 function generate(seedStr, nColors){
   for(let attempt=0; attempt<50; attempt++){
     const rnd = mulberry32(hash(seedStr + ":" + attempt));
@@ -269,31 +482,71 @@ function generate(seedStr, nColors){
   const pool = []; for(let c=0;c<nColors;c++) for(let k=0;k<CAP;k++) pool.push(c);
   const bottles = []; for(let i=0;i<nColors;i++) bottles.push(pool.slice(i*CAP,(i+1)*CAP));
   bottles.push([],[]); bottles[0].reverse();
-  return { bottles, par: nColors*4 };
+  // Guaranteed-solvable fallback: two partial matching pairs can be completed in two legal pours.
+  const fallback = Array.from({length:nColors}, (_, color) => Array(CAP).fill(color));
+  fallback[0] = [0,0,0];
+  fallback[1] = [1,1,1];
+  fallback.splice(2,0,[0,1]);
+  fallback.push([],[]);
+  const verified = solve(fallback, 10000);
+  return { bottles:fallback, par:verified ? verified.length : 2 };
 }
 
 /* ---------- game state ---------- */
 let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
-let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
+let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null, tutorialStep = 0, activeModifier = null;
+const moveLimitForLevel = (level, par) => Math.ceil(par * 1.8) + 2;
+const modifierForLevel = level => level % 10 === 0 ? { id:"limited-moves", name:"Limited Moves", description:"Solve before the move counter runs out" } : level % 5 === 0 ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 } : null;
+const dailyModifierForDate = day => {
+  const [year,month,date] = String(day).split("-").map(Number);
+  const ordinal = Math.floor(Date.UTC(year,month-1,date) / 86400000);
+  return ((ordinal % 2) + 2) % 2 === 0
+    ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 }
+    : { id:"limited-moves", name:"Limited Moves", description:"Solve before the move counter runs out" };
+};
+const frozenBottleIndex = () => activeModifier?.id === "frozen-reserve" && moves < activeModifier.unlockAfter && puzzle ? puzzle.bottles.length-1 : -1;
 
 const $ = id => document.getElementById(id);
 function dateKey(d=new Date()){ const p = n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>el.classList.remove("show"),1600); }
 
-function startGame(m){
+function dailyProgressKey(day=puzzleDate){ return "daily-progress-" + day; }
+function persistDailyProgress(){
+  if(mode!=="daily" || !puzzleDate || finished || save.won[puzzleDate]) return;
+  LS.set(dailyProgressKey(), { version:1, state:state.map(b=>b.slice()), moves, history:history.map(h=>h.map(b=>b.slice())), hintsUsed, extraBottles, hintPaid, updatedAt:Date.now() });
+}
+function clearDailyProgress(day=puzzleDate){ try{ localStorage.removeItem("cq."+dailyProgressKey(day)); }catch(e){} }
+function restoreDailyProgress(){
+  if(mode!=="daily" || save.won[puzzleDate]) return false;
+  const p=LS.get(dailyProgressKey(),null);
+  if(!p || p.version!==1 || !Array.isArray(p.state) || p.state.length!==puzzle.bottles.length+(p.extraBottles?1:0) || !p.state.every(b=>Array.isArray(b)&&b.length<=CAP&&b.every(c=>Number.isInteger(c)&&c>=0&&c<COLORS.length)) || !Number.isInteger(p.moves)||p.moves<0) return false;
+  state=p.state.map(b=>b.slice()); moves=p.moves;
+  history=Array.isArray(p.history)?p.history.filter(h=>Array.isArray(h)&&h.length===puzzle.bottles.length+(p.extraBottles?1:0)&&h.every(b=>Array.isArray(b)&&b.length<=CAP&&b.every(c=>Number.isInteger(c)&&c>=0&&c<COLORS.length))).map(h=>h.map(b=>b.slice())):[];
+  hintsUsed=Number.isInteger(p.hintsUsed)&&p.hintsUsed>=0?p.hintsUsed:0; extraBottles=p.extraBottles?1:0; hintPaid=typeof p.hintPaid==="string"?p.hintPaid:"";
+  return true;
+}
+
+function startGame(m, levelOverride=null){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
+  selectedLevel = m==="endless" ? Math.max(1, Number(levelOverride || save.level) || 1) : null;
+  activeModifier = null;
   let n;
   if(m==="daily"){
-    const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
+    const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()]; activeModifier = dailyModifierForDate(puzzleDate);
     $("title").textContent = WEEKDAYS[d.getDay()] + " · " + dateKey(d);
   } else {
-    const lv = save.level; seedStr = "level-" + lv; n = Math.min(4 + Math.floor((lv-1)/3), 11);
-    $("title").textContent = "Level " + lv;
+    const lv = selectedLevel; activeModifier = modifierForLevel(lv); seedStr = "level-" + lv; n = levelColorCount(lv);
+    $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
   puzzle = generate(seedStr, n);
+  if(activeModifier?.id === "limited-moves") activeModifier.moveLimit = moveLimitForLevel(selectedLevel || 1, puzzle.par);
   state = puzzle.bottles.map(b=>b.slice());
+  const resumed = restoreDailyProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
+  $("levelMapBtn").hidden = m!=="endless";
   render();
+  if(resumed) toast("Daily challenge resumed");
+  else if(m==="daily") persistDailyProgress();
 }
 
 function render(){
@@ -302,20 +555,28 @@ function render(){
   { const n = state.length, z = n<=6 ? [60,204] : n<=8 ? [54,186] : [48,168]; board.style.setProperty("--bw", z[0]+"px"); board.style.setProperty("--bh", z[1]+"px"); }
   state.forEach((b,i)=>{
     const el = document.createElement("div");
-    el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
+    const frozen = i===frozenBottleIndex();
+    el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"") + (frozen?" frozen":"");
     b.forEach((c,si)=>{ const s = document.createElement("div"); s.className = "seg" + (fx && fx.to===i && si >= b.length - fx.n ? " fill" : ""); s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
-    if(fx && fx.from===i){ el.classList.add("land"); el.style.setProperty("--tx", fx.tx+"px"); el.style.setProperty("--ty", fx.ty+"px"); el.style.setProperty("--rot", fx.rot+"deg"); }
-    el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(b.length? ", "+b.length+" layers":", empty")); el.addEventListener("click", ()=>tap(i));
+    if(fx && fx.from===i){
+      el.classList.add("land");
+      el.style.setProperty("--tx",fx.tx+"px");
+      el.style.setProperty("--ty",fx.ty+"px");
+      el.style.setProperty("--rot",fx.rot+"deg");
+    }
+    el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(frozen?", frozen reserve":b.length? ", "+b.length+" layers":", empty")); el.setAttribute("aria-disabled",frozen?"true":"false"); el.addEventListener("click", ()=>tap(i));
     board.appendChild(el);
   });
   fx = null;
   $("moves").textContent = "Moves " + moves + " · Par " + (puzzle? puzzle.par : "-");
+  $("modifierStatus").textContent = activeModifier?.id === "limited-moves" ? "⏳ Limited Moves · "+Math.max(0,activeModifier.moveLimit-moves)+" left" : activeModifier ? (moves<activeModifier.unlockAfter ? "❄️ "+activeModifier.name+" · "+(activeModifier.unlockAfter-moves)+" pours to thaw" : "✨ "+activeModifier.name+" thawed") : "";
   $("undo").disabled = !history.length;
   hud();
 }
 
 function tap(i){
   if(finished || busy) return;
+  if(i===frozenBottleIndex()){ toast("Frozen reserve — make "+(activeModifier.unlockAfter-moves)+" more pours"); return; }
   if(sel === -1){ if(state[i].length) { sel = i; sfx.select(); render(); } return; }
   if(sel === i){ sel = -1; sfx.select(); render(); return; }
   if(canPour(state[sel], state[i])){ doPour(sel, i); }
@@ -335,7 +596,10 @@ function doPour(a, b){
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
-    if(isSolved(state)) win(); else if(full) sfx.done();
+    trackQuestMove();
+    if(isSolved(state)) win();
+    else if(activeModifier?.id === "limited-moves" && moves >= activeModifier.moveLimit){ finished = true; $("challengeFail").showModal(); }
+    else { persistDailyProgress(); if(full) sfx.done(); }
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
@@ -358,6 +622,16 @@ function doPour(a, b){
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
+function applyReplayResult(previous, earned, moves=previous.moves){
+  const oldStars=Number(previous.stars)||0;
+  const newStars=Math.max(oldStars,earned);
+  const previousBest=Number(previous.bestMoves)||Number(previous.moves)||Infinity;
+  const currentMoves=Number(moves)||Infinity;
+  previous.stars=newStars;
+  previous.moves=currentMoves;
+  previous.bestMoves=Math.min(previousBest,currentMoves);
+  return newStars-oldStars;
+}
 
 function win(){
   finished = true;
@@ -369,8 +643,9 @@ function win(){
     if(!save.won[k]){
       save.stars += st;
       const prev = new Date(k+"T12:00:00"); prev.setDate(prev.getDate()-1);
-      save.streak = (save.last === dateKey(prev)) ? save.streak+1 : 1;
-      save.last = k; save.best = Math.max(save.best, save.streak);
+      save.streak = (save.streakGraceDate === k) ? (Number(save.streakGraceBase)||0)+1 : (save.last === dateKey(prev)) ? save.streak+1 : 1;
+      save.last = k; save.streakGraceDate = null; save.streakGraceBase = 0; save.best = Math.max(save.best, save.streak);
+      if(awardStreakFreeze(save.streak)) note="7-day milestone! You earned a Streak Shield 🛡️ · "+save.streak+" day streak";
       save.won[k] = { moves, stars: st };
       save.stats.daily++;
       coins = 25 + st*10 + Math.min(save.streak,7)*5; xp = 40 + st*15;
@@ -378,10 +653,30 @@ function win(){
     } else { fresh = false; note = "Practice run: today's result is already saved."; }
     $("next").textContent = "Done";
   } else {
-    save.stars += st; save.level++;
-    coins = 10 + st*5; xp = 20 + st*10;
-    note = "Next: Level " + save.level; $("next").textContent = "Next level";
+    const completedLevel = selectedLevel || save.level;
+    const previous = save.levelResults[String(completedLevel)];
+    if(!previous){
+      save.levelResults[String(completedLevel)] = { stars:st, moves, bestMoves:moves };
+      save.stars += st;
+      coins = 10 + st*5; xp = 20 + st*10;
+      if(completedLevel === save.level) save.level = completedLevel + 1;
+      const milestoneRewards = {5:50,10:100,25:250,50:500};
+      if(milestoneRewards[completedLevel] && !save.economyMilestones[String(completedLevel)]){
+        const bonus=milestoneRewards[completedLevel];
+        coins += bonus;
+        save.economyMilestones[String(completedLevel)] = true;
+        note = "Level " + completedLevel + " milestone! +" + bonus + " bonus coins · Unlocked: Level " + save.level;
+      } else note = "Unlocked: Level " + save.level;
+    } else {
+      const starDelta = applyReplayResult(previous, st, moves);
+      save.stars += starDelta;
+      note = "Replay complete · best " + previous.bestMoves + " moves";
+      if(starDelta > 0) note += " · +" + starDelta + " star" + (starDelta===1?"":"s");
+      fresh = false;
+    }
+    $("next").textContent = "Continue";
   }
+  if(fresh) trackQuestWin(flawless);
   let rewardLine = "";
   if(fresh){
     if(st===3) coins += 10;
@@ -394,7 +689,7 @@ function win(){
     const got = checkAch(false);
     if(got.length) note += "<br>🏆 " + got.map(x=>x.icon+" "+x.name).join(", ") + " (+" + (got.length*25) + " 🪙)";
   }
-  LS.set("save", save); render();
+  LS.set("save", save); clearDailyProgress(); render();
   $("winTitle").textContent = st===3 ? "Perfect!" : "Solved!";
   $("winStars").textContent = "⭐".repeat(st) + "☆".repeat(3-st);
   $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")" + rewardLine + "<br>" + note;
@@ -406,11 +701,12 @@ function win(){
 }
 
 /* ---------- controls ---------- */
-$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("retryChallenge").onclick = ()=>{ $("challengeFail").close(); $("restart").click(); };
+$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; persistDailyProgress(); render(); };
+$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; persistDailyProgress(); render(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
 let plan = null;
-const exactKey = st => st.map(b=>b.join("")).join("|");
+const exactKey = st => JSON.stringify(st);
 function nextHint(){
   let idx = plan ? plan.keys.indexOf(exactKey(state)) : -1;
   if(idx < 0 || idx >= plan.mv.length){
@@ -429,11 +725,56 @@ $("hint").onclick = ()=>{
   if(cost && save.coins < cost){ offerAd("Need 5 🪙 for another hint."); return; }
   if(cost){ save.coins -= cost; LS.set("save", save); }
   if(hintPaid !== k){ hintsUsed++; hintPaid = k; }
+  persistDailyProgress();
   const [i,j] = m; sel = i; render();
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
 $("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
+const TUTORIAL = [
+  { icon:"🧪", title:"Welcome to Color Quest!", body:"Your goal is simple: sort every color into its own bottle. Each bottle must contain four matching layers." },
+  { icon:"👆", title:"1. Select a bottle", body:"Tap any bottle with liquid to pick it up. The selected bottle will lift slightly so you can see which one is active." },
+  { icon:"💧", title:"2. Pour matching colors", body:"Tap another bottle to pour. You can pour onto the same color or into an empty bottle. Only the top matching color layers move." },
+  { icon:"↩️", title:"3. Use your tools", body:"Undo reverses your last move. Hint shows a suggested move. Reset starts the current puzzle over. Extra bottles can help when you need more space." },
+  { icon:"⭐", title:"4. Earn rewards", body:"Finish with fewer moves to earn more stars. Complete levels to unlock the next one, collect coins and gain XP. Daily challenges build your streak!" }
+];
+function renderTutorial(){
+  const item=TUTORIAL[tutorialStep];
+  $("tutorialTitle").textContent=item.title;
+  $("tutorialStep").innerHTML='<div class="tutorial-icon">'+item.icon+'</div><p>'+item.body+'</p>';
+  $("tutorialProgress").innerHTML=TUTORIAL.map((_,i)=>'<i class="'+(i===tutorialStep?"active":"")+'"></i>').join("");
+  $("tutorialNext").textContent=tutorialStep===TUTORIAL.length-1?"Let's play!":"Next";
+}
+function openTutorial(){
+  tutorialStep=0; renderTutorial(); $("tutorialDlg").showModal();
+}
+function finishTutorial(){
+  save.tutorialSeen=true; LS.set("save",save); $("tutorialDlg").close();
+  if(save.dr.last!==dateKey()) setTimeout(checkDailyReward,120);
+}
+$("tutorialNext").onclick=()=>{ if(tutorialStep<TUTORIAL.length-1){tutorialStep++;renderTutorial();}else finishTutorial(); };
+$("tutorialSkip").onclick=finishTutorial;
+$("tutorialDlg").addEventListener("close",()=>{ if(!save.tutorialSeen && tutorialStep===TUTORIAL.length-1) finishTutorial(); });
+$("howToBtn").onclick=()=>{ $("setDlg").close(); openTutorial(); };
 $("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
+function renderLevelMap(){
+  const grid=$("levelGrid"); grid.innerHTML="";
+  const max=Math.max(100,save.level+9);
+  const completed=Object.keys(save.levelResults).length;
+  $("levelSummary").textContent="Level "+save.level+" unlocked · "+completed+" completed · 100-level campaign";
+  for(let level=1;level<=max;level++){
+    const result=save.levelResults[String(level)], unlocked=level<=save.level;
+    const tile=document.createElement("button");
+    const tier=difficultyForLevel(level);
+    tile.className="level-tile"+(level===save.level?" current":"")+(result?" completed":"")+(unlocked?"":" locked");
+    tile.disabled=!unlocked;
+    tile.innerHTML="<span>"+(unlocked?level:"🔒")+"</span><small>"+(result?"★".repeat(result.stars||0):unlocked?tier:"Locked")+"</small>";
+    tile.setAttribute("aria-label",unlocked?"Play level "+level+" · "+tier+(result?", completed":""):"Level "+level+" · "+tier+" locked");
+    tile.onclick=()=>{ $("levelDlg").close(); startGame("endless",level); };
+    grid.appendChild(tile);
+  }
+}
+$("levelMapBtn").onclick=()=>{ renderLevelMap(); $("levelDlg").showModal(); };
+$("levelClose").onclick=()=>$("levelDlg").close();
 $("next").onclick = ()=>$("win").close();
 $("win").addEventListener("close", ()=>{ if(finished && mode==="endless"){ startGame("endless"); if(save.level > ADS_CONFIG.interstitialEvery && (save.level-1) % ADS_CONFIG.interstitialEvery === 0) Ads.interstitial(); } });
 $("share").onclick = async ()=>{
@@ -442,12 +783,49 @@ $("share").onclick = async ()=>{
   try{ if(NATIVE && window.CQNative) await window.CQNative.Share.share({ text }); else if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast("Copied!"); } }catch(e){}
 };
 
+function renderDailyJourney(){
+  const today=dateKey(), base=new Date(today+"T12:00:00");
+  const path=$("journeyPath"); path.innerHTML="";
+  let completed=0;
+  for(let offset=6;offset>=0;offset--){
+    const d=new Date(base); d.setDate(d.getDate()-offset); const k=dateKey(d), result=save.won[k];
+    if(result) completed++;
+    const el=document.createElement("div");
+    el.className="journey-day"+(result?" done":"")+(k===today?" today":"")+(k<today&&!result?" missed":"");
+    const status=result ? "★".repeat(result.stars||0) : k===today ? (LS.get(dailyProgressKey(k),null)?"↻":"Today") : "—";
+    el.innerHTML="<small>"+d.toLocaleDateString(undefined,{weekday:"short"})+"</small><b>"+d.getDate()+"</b><span>"+status+"</span>";
+    el.title=result ? k+" · "+result.moves+" moves · "+result.stars+" stars" : k===today ? "Today's challenge" : k;
+    path.appendChild(el);
+  }
+  $("journeySummary").textContent=save.streak+" day streak 🔥 · "+Object.keys(save.won).length+" daily challenges completed · last 7 days: "+completed+"/7";
+}
+function renderModifierForecast(){
+  const today=dateKey(), base=new Date(today+"T12:00:00"), forecast=$("modifierForecast");
+  forecast.innerHTML="";
+  const counts={"frozen-reserve":0,"limited-moves":0};
+  Object.keys(save.won||{}).forEach(k=>{ const modifier=dailyModifierForDate(k); if(counts[modifier.id]!==undefined) counts[modifier.id]++; });
+  for(let offset=0;offset<8;offset++){
+    const d=new Date(base); d.setDate(d.getDate()+offset); const k=dateKey(d), modifier=dailyModifierForDate(k), result=save.won[k];
+    const el=document.createElement("div");
+    el.className="forecast-day"+(result?" done":"")+(offset===0?" today":"");
+    const icon=modifier.id==="frozen-reserve"?"❄️":"⏳";
+    const label=modifier.name==="Frozen Reserve"?"Frozen":"Limited";
+    el.innerHTML="<small>"+(offset===0?"Today":d.toLocaleDateString(undefined,{weekday:"short"}))+"</small><b>"+icon+"</b><span>"+label+"</span><small>"+(result?"✓ Completed":offset===0?"Play today":"Upcoming")+"</small>";
+    el.title=k+" · "+modifier.name+(result?" · Completed":"");
+    el.setAttribute("aria-label",(offset===0?"Today · ":"")+k+" · "+modifier.name+(result?" · completed":""));
+    forecast.appendChild(el);
+  }
+  $("modifierHistory").textContent="Completed modifier history · ❄️ Frozen Reserve: "+counts["frozen-reserve"]+" · ⏳ Limited Moves: "+counts["limited-moves"];
+}
+
 /* calendar */
 $("mCal").onclick = ()=>{
   const d = new Date(), y = d.getFullYear(), m = d.getMonth();
   $("calTitle").textContent = d.toLocaleString(undefined,{month:"long",year:"numeric"});
   const cal = $("cal"); cal.innerHTML = "";
   const first = new Date(y,m,1).getDay(), days = new Date(y,m+1,0).getDate();
+  renderDailyJourney();
+  renderModifierForecast();
   for(let i=0;i<first;i++) cal.appendChild(document.createElement("div"));
   for(let day=1; day<=days; day++){
     const k = dateKey(new Date(y,m,day)), el = document.createElement("div");
@@ -463,14 +841,54 @@ $("calClose").onclick = ()=>$("calDlg").close();
 /* settings */
 $("mSet").onclick = ()=>$("setDlg").showModal();
 $("setClose").onclick = ()=>$("setDlg").close();
-const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false ? "Off" : "On"); };
+const syncSnd = ()=>{ $("sndBtn").textContent = "Sound effects: " + (save.snd === false ? "Off" : "On"); };
+const syncMusicControls = ()=>{
+  $("musicBtn").textContent = "Background music: " + (save.music === false ? "Off" : "On");
+  $("musicVolume").value = Math.round(Math.max(0,Math.min(1,Number(save.musicVol??.18)))*100);
+  $("musicVolumeValue").textContent = $("musicVolume").value + "%";
+};
 $("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
-syncSnd();
+$("musicBtn").onclick = ()=>{ save.music = save.music === false; LS.set("save",save); syncMusicControls(); sfx.syncMusic(); };
+$("musicVolume").oninput = ()=>{
+  save.musicVol=Number($("musicVolume").value)/100;
+  $("musicVolumeValue").textContent=$("musicVolume").value+"%";
+  LS.set("save",save);sfx.setMusicVolume();
+};
+syncSnd();syncMusicControls();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
-$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
+$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); save.ownedCosmetics = {}; save.equippedCosmetics = { bottle:"", board:"", pour:"" }; LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
-/* streak decay if a day was missed */
-(function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
+/* Streak shields protect one missed daily challenge day. A shield is consumed only when the player returns. */
+function syncStreakProtection(today=dateKey()){
+  if(!save.last || save.last===today) return;
+  const lastDate=new Date(save.last+"T12:00:00"), todayDate=new Date(today+"T12:00:00");
+  const gap=Math.round((todayDate-lastDate)/86400000);
+  if(gap===2 && save.streakFreezes>0 && save.streak>0){
+    if(save.streakGraceDate!==today){
+      save.streakFreezes--;
+      save.streakGraceDate=today;
+      save.streakGraceBase=save.streak;
+      LS.set("save",save);
+      toast("Streak Shield used. Your "+save.streak+"-day streak is protected!");
+    }
+    return;
+  }
+  if(gap>1 && save.streakGraceDate!==today){
+    save.streak=0;save.streakGraceDate=null;save.streakGraceBase=0;LS.set("save",save);
+  }
+}
+syncStreakProtection();
+
+function awardStreakFreeze(streak){
+  if(streak<=0 || streak%7!==0) return false;
+  const milestone=String(streak);
+  if(save.streakFreezeMilestones[milestone]) return false;
+  save.streakFreezeMilestones[milestone]=true;
+  if(save.streakFreezes>=2) return false;
+  save.streakFreezes++;
+  LS.set("save",save);
+  return true;
+}
 
 /* ---------- progression: coins, XP, trophies, themes, daily reward ---------- */
 const TITLES = ["Rookie","Mixer","Sorter","Pourer","Alchemist","Mastermind","Legend"];
@@ -478,7 +896,7 @@ const xpNeed = l => 80 + (l-1)*40;
 const titleOf = l => TITLES[Math.min(TITLES.length-1, Math.floor((l-1)/3))];
 function addXp(n){ save.xp += n; let ups = 0; while(save.xp >= xpNeed(save.plv)){ save.xp -= xpNeed(save.plv); save.plv++; save.coins += 20; ups++; } return ups; }
 function hud(){
-  $("streak").textContent = save.streak; $("stars").textContent = save.stars; $("coins").textContent = save.coins;
+  $("streak").textContent = save.streak; $("streakFreeze").textContent = save.streakFreezes ? "🛡️ "+save.streakFreezes : ""; $("stars").textContent = save.stars; $("coins").textContent = save.coins;
   $("plv").textContent = "Lv " + save.plv + " · " + titleOf(save.plv);
   $("xpfill").style.width = Math.min(100, Math.round(save.xp / xpNeed(save.plv) * 100)) + "%";
   $("xptxt").textContent = save.xp + "/" + xpNeed(save.plv) + " XP";
@@ -499,7 +917,9 @@ const ACH = [
   { id:"l10",   icon:"🚀", name:"Level 10",       desc:"Reach Endless level 10",             test:s=>s.level>=10 },
   { id:"l25",   icon:"🛰️", name:"Level 25",       desc:"Reach Endless level 25",             test:s=>s.level>=25 },
   { id:"rich",  icon:"💰", name:"Piggy Bank",     desc:"Hold 500 coins",                     test:s=>s.coins>=500 },
-  { id:"coll",  icon:"🎨", name:"Collector",      desc:"Own every theme",                    test:s=>Object.keys(s.owned).length>=Object.keys(THEMES).length }
+  { id:"coll",  icon:"🎨", name:"Collector",      desc:"Own every theme",                    test:s=>Object.keys(s.owned).length>=Object.keys(THEMES).length },
+  { id:"style5",icon:"🪄",name:"Style Explorer",desc:"Collect 5 cosmetic items",test:s=>Object.keys(s.ownedCosmetics||{}).length>=5 },
+  { id:"style8",icon:"💎",name:"Master Collector",desc:"Collect all 8 cosmetic items",test:s=>Object.keys(s.ownedCosmetics||{}).length>=8 }
 ];
 function checkAch(show){
   const got = [];
@@ -519,16 +939,41 @@ function renderAch(){
 }
 
 const THEMES = {
-  classic:{ name:"Classic", cost:0,   bg:"#14172b", panel:"#1f2340", colors:COLORS },
-  neon:   { name:"Neon",    cost:120, bg:"#08080f", panel:"#15152a", colors:["#ff2e63","#ff9f1c","#f9f871","#39ff14","#00f5d4","#00b4ff","#7b5cff","#d400ff","#ff61d8","#c98b5a","#b5bdc9","#00e5ff"] },
-  candy:  { name:"Candy",   cost:200, bg:"#2b1b3d", panel:"#3a2552", colors:["#ff6b81","#ffb26b","#ffe66d","#a0e57a","#6ee7c8","#74b9ff","#a29bfe","#e17aff","#ff8fd1","#c8a07a","#cfd6e4","#7fe3ff"] },
-  ocean:  { name:"Ocean",   cost:300, bg:"#06202b", panel:"#0d3342", colors:["#ff7a7a","#ffb454","#ffe27a","#7ee081","#2ed1b3","#4db8ff","#7a8cff","#b78cff","#ff8ec9","#b58863","#a9b8c6","#5ff0ff"] }
+  classic:{ name:"Classic", cost:0, bg:"#172044", panel:"#263568", colors:COLORS },
+  neon:   { name:"Neon", cost:120, bg:"#101322", panel:"#202943", colors:["#ff2e63","#ff9f1c","#f9f871","#39ff14","#00f5d4","#00b4ff","#7b5cff","#d400ff","#ff61d8","#c98b5a","#b5bdc9","#00e5ff"] },
+  candy:  { name:"Candy", cost:200, bg:"#29213D", panel:"#403256", colors:["#ff6b81","#ffb26b","#ffe66d","#a0e57a","#6ee7c8","#74b9ff","#a29bfe","#e17aff","#ff8fd1","#c8a07a","#cfd6e4","#7fe3ff"] },
+  ocean:  { name:"Ocean", cost:300, bg:"#102B38", panel:"#1B4655", colors:["#ff7a7a","#ffb454","#ffe27a","#7ee081","#2ed1b3","#4db8ff","#7a8cff","#b78cff","#ff8ec9","#b58863","#a9b8c6","#5ff0ff"] }
 };
 function applyTheme(id){
   const t = THEMES[id] || THEMES.classic; COLORS = t.colors;
   const r = document.documentElement.style; r.setProperty("--bg", t.bg); r.setProperty("--panel", t.panel);
   const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t.bg);
   if(state.length) render();
+}
+const COSMETICS = {
+  bottle:[
+    {id:"gold",name:"Royal Gold",icon:"👑",cost:150,desc:"Gold-trimmed bottle rims"},
+    {id:"aurora-glass",name:"Aurora Glass",icon:"🌌",cost:220,desc:"A cool aurora shimmer around glass"},
+    {id:"prism",name:"Prism Crystal",icon:"💎",cost:300,desc:"Iridescent crystal bottle finish"}
+  ],
+  board:[
+    {id:"aurora",name:"Aurora Field",icon:"🌈",cost:120,desc:"A soft northern-lights board glow"},
+    {id:"stardust",name:"Stardust Arena",icon:"✨",cost:180,desc:"Subtle stars across the play area"},
+    {id:"sunset",name:"Sunset Stage",icon:"🌅",cost:180,desc:"A warm sunset glow behind the puzzle"}
+  ],
+  pour:[
+    {id:"rainbow",name:"Rainbow Stream",icon:"🌈",cost:200,desc:"A colorful liquid-pour trail"},
+    {id:"starlight",name:"Starlight Stream",icon:"⭐",cost:240,desc:"A golden, glowing pour trail"}
+  ]
+};
+function applyCosmetics(){
+  const eq=save.equippedCosmetics||{bottle:"",board:"",pour:""};
+  const board=$("board");
+  ["cosmetic-gold","cosmetic-aurora-glass","cosmetic-prism","cosmetic-aurora","cosmetic-stardust","cosmetic-sunset"].forEach(x=>board.classList.remove(x));
+  if(eq.bottle) board.classList.add("cosmetic-"+eq.bottle);
+  if(eq.board) board.classList.add("cosmetic-"+eq.board);
+  document.body.classList.toggle("cosmetic-rainbow",eq.pour==="rainbow");
+  document.body.classList.toggle("cosmetic-starlight",eq.pour==="starlight");
 }
 /* ---------- ads: ONLY inside the Android app (AdMob). The website / PWA never shows ads. ---------- */
 const ADS_CONFIG = {
@@ -603,6 +1048,7 @@ $("doubleBtn").onclick = ()=>{
 function renderShop(){
   $("shopCoins").textContent = save.coins;
   const box = $("shopList"); box.innerHTML = "";
+  const heading=(label)=>{const h=document.createElement("h3");h.textContent=label;h.className="shop-section";box.appendChild(h);};
   Object.keys(THEMES).forEach(id=>{
     const t = THEMES[id], owned = !!save.owned[id], eq = save.theme === id;
     const row = document.createElement("div"); row.className = "shoprow";
@@ -618,6 +1064,30 @@ function renderShop(){
     };
     row.appendChild(btn); box.appendChild(row);
   });
+  Object.entries(COSMETICS).forEach(([category,items])=>{
+    const title=category==="bottle"?"Bottle finishes":category==="board"?"Board environments":"Pour effects";
+    heading(title);
+    items.forEach(item=>{
+      const owned=!!save.ownedCosmetics[item.id], equipped=save.equippedCosmetics[category]===item.id;
+      const row=document.createElement("div");row.className="cosmetic-row";
+      const preview=document.createElement("div");preview.className="cosmetic-preview";preview.textContent=item.icon;
+      const copy=document.createElement("div");copy.className="cosmetic-copy";
+      const name=document.createElement("b");name.textContent=item.name;
+      const desc=document.createElement("small");desc.textContent=item.desc;
+      copy.append(name,desc);
+      const btn=document.createElement("button");btn.textContent=equipped?"Equipped":owned?"Equip":"🪙 "+item.cost;btn.disabled=equipped;
+      btn.onclick=()=>{
+        if(!owned){
+          if(save.coins<item.cost){toast("Need "+(item.cost-save.coins)+" more 🪙");sfx.bad();return;}
+          save.coins-=item.cost;save.ownedCosmetics[item.id]=true;
+          checkAch(true);
+        }
+        save.equippedCosmetics[category]=item.id;
+        LS.set("save",save);applyCosmetics();hud();renderShop();sfx.done();
+      };
+      row.append(preview,copy,btn);box.appendChild(row);
+    });
+  });
   $("adBtn").hidden = !Ads.enabled;
 }
 $("mShop").onclick = ()=>{ renderShop(); $("shopDlg").showModal(); };
@@ -631,13 +1101,79 @@ $("bottle").onclick = ()=>{
   if(extraBottles){ toast("Extra bottle already added"); return; }
   if(save.coins < 30){ offerAd("Need 30 🪙 for an extra bottle."); return; }
   save.coins -= 30; LS.set("save", save); extraBottles = 1;
-  state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render();
+  state.push([]); history.forEach(h=>h.push([])); plan = null; persistDailyProgress(); sfx.done(); render();
 };
 
 const REW = [10,15,20,25,30,40,75];
+
+const QUEST_REWARDS = { daily:20, weekly:100 };
+function isoWeekKey(date=new Date()){
+  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
+  d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));
+  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const week=Math.ceil((((d-yearStart)/86400000)+1)/7);
+  return d.getUTCFullYear()+"-W"+String(week).padStart(2,"0");
+}
+function ensureQuestState(){
+  const today=dateKey(), week=isoWeekKey();
+  if(!save.quests || typeof save.quests!=="object") save.quests={};
+  if(save.quests.day!==today){
+    save.quests.day=today;
+    save.quests.daily={solves:0,moves:0,noHint:0};
+    save.quests.dailyClaimed={};
+  }
+  if(save.quests.week!==week){
+    save.quests.week=week;
+    save.quests.weekly={solves:0};
+    save.quests.weeklyClaimed=false;
+  }
+  save.quests.daily=Object.assign({solves:0,moves:0,noHint:0},save.quests.daily);
+  save.quests.dailyClaimed=save.quests.dailyClaimed||{};
+  save.quests.weekly=Object.assign({solves:0},save.quests.weekly);
+}
+function trackQuestMove(){
+  ensureQuestState();save.quests.daily.moves++;LS.set("save",save);
+}
+function trackQuestWin(flawless){
+  ensureQuestState();save.quests.daily.solves++;save.quests.weekly.solves++;
+  if(flawless)save.quests.daily.noHint++;
+  LS.set("save",save);
+}
+const DAILY_QUESTS=[
+  {id:"solve",icon:"🧪",title:"Puzzle Solver",detail:"Complete 1 puzzle today",goal:1,value:q=>q.solves},
+  {id:"moves",icon:"💧",title:"Steady Pour",detail:"Make 10 pours today",goal:10,value:q=>q.moves},
+  {id:"clean",icon:"✨",title:"No-help Finish",detail:"Win without hints or extra bottles",goal:1,value:q=>q.noHint}
+];
+function renderQuests(){
+  ensureQuestState();
+  const q=save.quests,box=$("questList");box.innerHTML="";
+  $("questSummary").textContent="Daily quests reset at local midnight · Weekly goal resets every Monday";
+  const section=(label)=>{const h=document.createElement("h3");h.className="shop-section";h.textContent=label;box.appendChild(h);};
+  const add=(id,icon,title,detail,value,goal,reward,claimed,onClaim)=>{
+    const row=document.createElement("div");row.className="quest-row";
+    const copy=document.createElement("div");copy.className="quest-copy";
+    const name=document.createElement("b");name.textContent=icon+" "+title;
+    const desc=document.createElement("small");desc.textContent=detail+" · "+Math.min(value,goal)+"/"+goal+" · "+reward+" coins";
+    const track=document.createElement("div");track.className="quest-progress";
+    const fill=document.createElement("i");fill.style.width=Math.min(100,Math.round(value/goal*100))+"%";track.appendChild(fill);
+    copy.append(name,desc,track);
+    const btn=document.createElement("button");
+    btn.textContent=claimed?"Claimed":value>=goal?"Claim":"In progress";
+    btn.disabled=claimed||value<goal;
+    btn.onclick=()=>{if(claimed||value<goal)return;onClaim();LS.set("save",save);hud();renderQuests();sfx.done();};
+    row.append(copy,btn);box.appendChild(row);
+  };
+  section("Daily quests");
+  DAILY_QUESTS.forEach(item=>add(item.id,item.icon,item.title,item.detail,item.value(q.daily),item.goal,QUEST_REWARDS.daily,!!q.dailyClaimed[item.id],()=>{q.dailyClaimed[item.id]=true;save.coins+=QUEST_REWARDS.daily;}));
+  section("Weekly challenge");
+  add("weekly","🏆","Weekly Puzzle Champion","Complete 5 puzzles this week",q.weekly.solves,5,QUEST_REWARDS.weekly,q.weeklyClaimed,()=>{q.weeklyClaimed=true;save.coins+=QUEST_REWARDS.weekly;});
+}
+$("mQuest").onclick=()=>{renderQuests();$("questDlg").showModal();};
+$("questClose").onclick=()=>$("questDlg").close();
+
 let drPending = null;
 function checkDailyReward(){
-  const today = dateKey(); if(save.dr.last === today || $("drDlg").open) return;
+  const today = dateKey(); if(save.dr.last === today || $("drDlg").open || $("tutorialDlg").open) return;
   const y = new Date(); y.setDate(y.getDate()-1);
   const day = (save.dr.last === dateKey(y)) ? (save.dr.day % 7) + 1 : 1;
   drPending = day;
@@ -669,7 +1205,7 @@ function confetti(){
 document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState!=="visible") return;
   const y = new Date(); y.setDate(y.getDate()-1);
-  if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
+  syncStreakProtection();
   if(mode==="daily" && puzzleDate !== dateKey() && (moves===0 || finished)){ startGame("daily"); } else render();
   checkDailyReward();
 });
@@ -683,11 +1219,44 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 /* service worker */
 if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
+ensureQuestState();
 applyTheme(save.theme);
+applyCosmetics();
 startGame("daily");
-setTimeout(checkDailyReward, 350);
+if(!save.tutorialSeen) setTimeout(openTutorial, 300);
+else setTimeout(checkDailyReward, 350);
 Ads.init();
-window.__cq = { nextHint, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
+window.__cq = {
+  startGame,
+  nextHint,
+  renderLevelMap,
+  get selectedLevel(){ return selectedLevel; },
+  get state(){ return state; },
+  get save(){ return save; },
+  get puzzle(){ return puzzle; },
+  levelColorCount,
+  difficultyForLevel,
+  generate,
+  isSolved,
+  solve,
+  pour,
+  checkDailyReward,
+  openTutorial,
+  get tutorialStep(){ return tutorialStep; },
+  starsFor,
+  applyReplayResult,
+  get economyMilestones(){ return save.economyMilestones; },
+  renderQuests,
+  get quests(){ ensureQuestState(); return save.quests; },
+  syncStreakProtection,
+  awardStreakFreeze,
+  modifierForLevel,
+  dailyModifierForDate,
+  moveLimitForLevel,
+  get activeModifier(){ return activeModifier; },
+  frozenBottleIndex,
+  get generatorFallback(){ const n=4; const b=Array.from({length:n},(_,c)=>Array(CAP).fill(c)); b[0]=[0,0,0]; b[1]=[1,1,1]; b.splice(2,0,[0,1]); b.push([],[]); const sol=solve(b,10000); return !!sol && isSolved(sol.reduce((s,m)=>{pour(s,m[0],m[1]);return s;},b.map(x=>x.slice()))); }
+};
 })();
 </script>
 </body>
