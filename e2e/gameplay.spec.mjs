@@ -146,6 +146,27 @@ test("generated starting puzzle is solvable and has a valid par score", async ({
   expect(result.solved).toBe(true);
 });
 
+test("puzzle generator preserves color counts and solvability across difficulty bands", async ({ page }) => {
+  const results = await page.evaluate(() => [4, 6, 8, 10, 11].map((colors, index) => {
+    const puzzle = window.__cq.generate("generator-regression-" + colors + "-" + index, colors);
+    const counts = Array(colors).fill(0);
+    for (const bottle of puzzle.bottles) for (const color of bottle) counts[color]++;
+    return {
+      colors,
+      bottleCount: puzzle.bottles.length,
+      counts,
+      par: puzzle.par,
+      solvedAtStart: window.__cq.isSolved(puzzle.bottles)
+    };
+  }));
+  for (const result of results) {
+    expect(result.bottleCount).toBe(result.colors + 2);
+    expect(result.counts).toEqual(Array(result.colors).fill(4));
+    expect(result.par).toBeGreaterThan(0);
+    expect(result.solvedAtStart).toBe(false);
+  }
+});
+
 test("level map shows unlocked progress and prevents locked-level selection", async ({ page }) => {
   await page.locator("#mEndless").click();
   await expect(page.locator("#levelMapBtn")).toBeVisible();
