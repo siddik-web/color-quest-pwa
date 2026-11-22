@@ -176,6 +176,27 @@ button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-off
 @media(prefers-reduced-motion:reduce){#win[open]{animation:none}button:active{transform:none}}
 
 </style>
+<style>
+/* Collectible cosmetic shop */
+.shop-section{margin:16px 0 8px;text-align:left}
+.shop-section h3{font-size:13px;letter-spacing:.5px;color:var(--muted);margin:0 0 8px;text-transform:uppercase}
+.cosmetic-row{display:flex;align-items:center;gap:10px;padding:10px;margin:8px 0;border:1px solid #ffffff22;border-radius:13px;background:#ffffff0a;text-align:left}
+.cosmetic-preview{width:48px;height:48px;flex:0 0 48px;border-radius:12px;display:grid;place-items:center;font-size:26px;background:linear-gradient(145deg,#ffffff24,#ffffff08);border:1px solid #ffffff25}
+.cosmetic-copy{flex:1;min-width:0}
+.cosmetic-copy b{display:block;font-size:13px}
+.cosmetic-copy small{display:block;color:var(--muted);font-size:11px;line-height:1.35;margin-top:3px}
+.cosmetic-row button{min-width:82px;padding:8px 9px;font-size:12px}
+#board.cosmetic-aurora{background:radial-gradient(ellipse at 50% 50%,#4ee7cf18,transparent 68%);border-radius:28px}
+#board.cosmetic-stardust{background:radial-gradient(circle at 20% 25%,#ffffff17 1px,transparent 2px),radial-gradient(circle at 75% 70%,#8e9dff20 1px,transparent 2px);background-size:42px 42px,57px 57px;border-radius:28px}
+#board.cosmetic-sunset{background:radial-gradient(ellipse at 50% 100%,#ff9a4a20,transparent 65%);border-radius:28px}
+#board.cosmetic-gold .bottle{border-color:#ffd77a;box-shadow:inset 3px 0 5px #fff8,inset -3px 0 6px #9dcff466,0 0 8px #ffc85744}
+#board.cosmetic-gold .bottle:before{border-color:#fff0bd;background:linear-gradient(180deg,#fff8d8,#e9b94f 55%,#fff0bd)}
+#board.cosmetic-aurora-glass .bottle{box-shadow:inset 3px 0 5px #fff9,inset -3px 0 6px #9dcff488,0 0 13px #62efd044}
+#board.cosmetic-prism .bottle{border-color:#d8c5ff;box-shadow:inset 3px 0 5px #fff9,inset -3px 0 6px #bca1ff77,0 0 12px #b58cff55}
+#board.cosmetic-prism .bottle:before{background:linear-gradient(90deg,#ff9bd8,#fff,#8ceaff,#d9a4ff)}
+body.cosmetic-rainbow .stream{background:linear-gradient(180deg,#ff5a5f,#ffa63d,#ffe14d,#7ddc4a,#3fa7ff,#c05cff)!important}
+body.cosmetic-starlight .stream{background:linear-gradient(180deg,#fff7bd,#ffd24a)!important;box-shadow:0 0 9px #ffe477aa}
+</style>
 </head>
 <body>
 <div id="app">
@@ -293,7 +314,7 @@ const LS = {
 const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true, music:true, musicVol:0.18,
   coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {};
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {}; save.ownedCosmetics = Object.assign({}, save.ownedCosmetics); save.equippedCosmetics = Object.assign({bottle:"",board:"",pour:""}, save.equippedCosmetics);
 
 /* ---------- original procedural sound + adaptive ambient music (no external files) ---------- */
 const sfx = (()=>{
@@ -817,6 +838,31 @@ function applyTheme(id){
   const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t.bg);
   if(state.length) render();
 }
+const COSMETICS = {
+  bottle:[
+    {id:"gold",name:"Royal Gold",icon:"👑",cost:150,desc:"Gold-trimmed bottle rims"},
+    {id:"aurora-glass",name:"Aurora Glass",icon:"🌌",cost:220,desc:"A cool aurora shimmer around glass"},
+    {id:"prism",name:"Prism Crystal",icon:"💎",cost:300,desc:"Iridescent crystal bottle finish"}
+  ],
+  board:[
+    {id:"aurora",name:"Aurora Field",icon:"🌈",cost:120,desc:"A soft northern-lights board glow"},
+    {id:"stardust",name:"Stardust Arena",icon:"✨",cost:180,desc:"Subtle stars across the play area"},
+    {id:"sunset",name:"Sunset Stage",icon:"🌅",cost:180,desc:"A warm sunset glow behind the puzzle"}
+  ],
+  pour:[
+    {id:"rainbow",name:"Rainbow Stream",icon:"🌈",cost:200,desc:"A colorful liquid-pour trail"},
+    {id:"starlight",name:"Starlight Stream",icon:"⭐",cost:240,desc:"A golden, glowing pour trail"}
+  ]
+};
+function applyCosmetics(){
+  const eq=save.equippedCosmetics||{bottle:"",board:"",pour:""};
+  const board=$("board");
+  ["cosmetic-gold","cosmetic-aurora-glass","cosmetic-prism","cosmetic-aurora","cosmetic-stardust","cosmetic-sunset"].forEach(x=>board.classList.remove(x));
+  if(eq.bottle) board.classList.add("cosmetic-"+eq.bottle);
+  if(eq.board) board.classList.add("cosmetic-"+eq.board);
+  document.body.classList.toggle("cosmetic-rainbow",eq.pour==="rainbow");
+  document.body.classList.toggle("cosmetic-starlight",eq.pour==="starlight");
+}
 /* ---------- ads: ONLY inside the Android app (AdMob). The website / PWA never shows ads. ---------- */
 const ADS_CONFIG = {
   testing: true,                                           // set to false for the release build (see ANDROID.md)
@@ -890,6 +936,7 @@ $("doubleBtn").onclick = ()=>{
 function renderShop(){
   $("shopCoins").textContent = save.coins;
   const box = $("shopList"); box.innerHTML = "";
+  const heading=(label)=>{const h=document.createElement("h3");h.textContent=label;h.className="shop-section";box.appendChild(h);};
   Object.keys(THEMES).forEach(id=>{
     const t = THEMES[id], owned = !!save.owned[id], eq = save.theme === id;
     const row = document.createElement("div"); row.className = "shoprow";
@@ -904,6 +951,33 @@ function renderShop(){
       save.theme = id; LS.set("save", save); applyTheme(id); hud(); renderShop(); sfx.done();
     };
     row.appendChild(btn); box.appendChild(row);
+  });
+  heading("Bottle finishes");
+  heading("Board environments");
+  heading("Pour effects");
+  Object.entries(COSMETICS).forEach(([category,items])=>{
+    const title=category==="bottle"?"Bottle finishes":category==="board"?"Board environments":"Pour effects";
+    const section=box.lastElementChild;
+    section.textContent=title;
+    items.forEach(item=>{
+      const owned=!!save.ownedCosmetics[item.id], equipped=save.equippedCosmetics[category]===item.id;
+      const row=document.createElement("div");row.className="cosmetic-row";
+      const preview=document.createElement("div");preview.className="cosmetic-preview";preview.textContent=item.icon;
+      const copy=document.createElement("div");copy.className="cosmetic-copy";
+      const name=document.createElement("b");name.textContent=item.name;
+      const desc=document.createElement("small");desc.textContent=item.desc;
+      copy.append(name,desc);
+      const btn=document.createElement("button");btn.textContent=equipped?"Equipped":owned?"Equip":"🪙 "+item.cost;btn.disabled=equipped;
+      btn.onclick=()=>{
+        if(!owned){
+          if(save.coins<item.cost){toast("Need "+(item.cost-save.coins)+" more 🪙");sfx.bad();return;}
+          save.coins-=item.cost;save.ownedCosmetics[item.id]=true;
+        }
+        save.equippedCosmetics[category]=item.id;
+        LS.set("save",save);applyCosmetics();hud();renderShop();sfx.done();
+      };
+      row.append(preview,copy,btn);box.appendChild(row);
+    });
   });
   $("adBtn").hidden = !Ads.enabled;
 }
@@ -971,6 +1045,7 @@ window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
 applyTheme(save.theme);
+applyCosmetics();
 startGame("daily");
 if(!save.tutorialSeen) setTimeout(openTutorial, 300);
 else setTimeout(checkDailyReward, 350);
