@@ -113,3 +113,13 @@ test("solver keeps bottle indexes stable while tracking visited states", () => {
   const html = read("index.html");
   assert.ok(html.includes('const key = s => s.map(b=>b.join("")).join("|");'));
 });
+
+test("economy milestones, replay star accounting and responsive dialogs are present", () => {
+  const html = read("index.html");
+  assert.match(html, /economyMilestones = save\.economyMilestones \|\| \{\}/);
+  assert.match(html, /const milestoneRewards = \{5:50,10:100,25:250,50:500\}/);
+  assert.match(html, /function applyReplayResult\(previous, earned\)/);
+  assert.match(html, /save\.stars \+= starDelta/);
+  assert.match(html, /max-height:min\(82dvh,720px\)/);
+  assert.match(html, /@media\(max-width:380px\)/);
+});
