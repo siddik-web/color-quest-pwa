@@ -79,6 +79,10 @@ test("liquid pour animation includes source tilt, stream and receiving feedback"
   assert.match(html, /@keyframes streamShimmer/);
   assert.match(html, /@keyframes bottle-tilt/);
   assert.match(html, /@keyframes liquid-flow/);
+  assert.match(html, /tx = 0;\s*ty = 0;/);
+  assert.match(html, /sEl\.style\.transformOrigin = dir > 0 \? "100% 12%" : "0% 12%"/);
+  assert.match(html, /setProperty\("--pour-x", "0px"\)/);
+  assert.match(html, /setProperty\("--pour-y", "0px"\)/);
   assert.match(html, /@keyframes drop-splash/);
   assert.match(html, /className = "liquid-drop"/);
   assert.match(html, /const started = performance\.now\(\), travelMs = 430/);
