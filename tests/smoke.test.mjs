@@ -179,7 +179,16 @@ test("streak shields are persisted, capped, and consumed on a single missed day"
   assert.match(html, /save\.streakGraceDate === k/);
   assert.match(html, /if\(save\.streakFreezes>=2\) return false/);
   assert.match(html, /id="streakFreeze"/);
-  assert.match(read("sw.js"), /color-quest-v31/);
+  assert.match(read("sw.js"), /color-quest-v32/);
+});
+
+test("daily modifiers are date-seeded and include both supported challenge types", () => {
+  const html = read("index.html");
+  assert.match(html, /const dailyModifierForDate = day =>/);
+  assert.match(html, /Date\.UTC\(year,month-1,date\)/);
+  assert.match(html, /activeModifier = dailyModifierForDate\(puzzleDate\)/);
+  assert.match(html, /dailyModifierForDate,/);
+  assert.match(html, /activeModifier\?\.id === "limited-moves"/);
 });
 
 test("milestone modifiers alternate between frozen reserve and limited moves", () => {
