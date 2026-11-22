@@ -72,21 +72,18 @@ test("daily challenge journey tracker is present and uses saved results", () => 
   assert.match(html, /save\.streak/);
 });
 
-test("liquid pour animation uses anchored bottle rotation and a gravity-curved SVG stream", () => {
+test("liquid pour animation preserves main-branch bottle positioning and landing", () => {
   const html = read("index.html");
   assert.match(html, /\.bottle\.pouring/);
-  assert.match(html, /\.bottle\.receiving/);
-  assert.match(html, /@keyframes bottle-tilt/);
-  assert.match(html, /transform-origin:50% 50%/);
-  assert.match(html, /const theta = rot\*Math\.PI\/180/);
-  assert.match(html, /getBoundingClientRect\(\) after rotation is only an axis-aligned bounding box/);
-  assert.match(html, /createElementNS\("http:\/\/www\.w3\.org\/2000\/svg","path"\)/);
-  assert.match(html, /const d="M "\+x1\+" "\+y1\+" Q "\+controlX\+" "\+controlY\+" "\+x2\+" "\+y2/);
-  assert.match(html, /const started=performance\.now\(\), travelMs=420/);
-  assert.match(html, /function moveDrop\(now\)/);
-  assert.match(html, /drop\.style\.transform = "translate3d\("/);
-  assert.match(html, /will-change:transform,opacity/);
-  assert.match(html, /stream\.remove\(\); drop\.remove\(\);/);
+  assert.match(html, /\.bottle\.land/);
+  assert.match(html, /@keyframes land/);
+  assert.match(html, /rot = dir \* 65/);
+  assert.match(html, /const mouthX = Math\.sin\(rot\*Math\.PI\/180\)/);
+  assert.match(html, /sEl\.style\.transform = "translate\("\+tx\+"px,"\+ty\+"px\) rotate\("\+rot\+"deg\)"/);
+  assert.match(html, /stream\.style\.left = \(tr\.left \+ tr\.width\/2 - 3\)/);
+  assert.match(html, /stream\.style\.top = \(tr\.top - 10\)/);
+  assert.match(html, /setTimeout\(\(\)=>\{ stream\.remove\(\); finish\(\); \}, 600\)/);
+  assert.match(html, /persistDailyProgress\(\)/);
 });
 test("endless progression has explicit difficulty tiers and color milestones", () => {
   const html = read("index.html");
