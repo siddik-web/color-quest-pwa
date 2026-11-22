@@ -98,3 +98,13 @@ test("level map and persistent unlock data are wired into the game", () => {
   assert.match(html, /save\.levelResults\[String\(completedLevel\)\]/);
   assert.match(html, /tile\.disabled=!unlocked/);
 });
+
+test("first-time tutorial is accessible, skippable and persisted", () => {
+  const html = read("index.html");
+  assert.match(html, /id="tutorialDlg"/);
+  assert.match(html, /const TUTORIAL = \[/);
+  assert.match(html, /function renderTutorial\(\)/);
+  assert.match(html, /function openTutorial\(\)/);
+  assert.match(html, /save\.tutorialSeen=true/);
+  assert.match(html, /id="howToBtn"/);
+});
