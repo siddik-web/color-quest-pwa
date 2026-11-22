@@ -487,6 +487,13 @@ let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
 let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false, selectedLevel = null, tutorialStep = 0, activeModifier = null;
 const moveLimitForLevel = (level, par) => Math.ceil(par * 1.8) + 2;
 const modifierForLevel = level => level % 10 === 0 ? { id:"limited-moves", name:"Limited Moves", description:"Solve before the move counter runs out" } : level % 5 === 0 ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 } : null;
+const dailyModifierForDate = day => {
+  const [year,month,date] = String(day).split("-").map(Number);
+  const ordinal = Math.floor(Date.UTC(year,month-1,date) / 86400000);
+  return ((ordinal % 2) + 2) % 2 === 0
+    ? { id:"frozen-reserve", name:"Frozen Reserve", description:"One reserve bottle thaws after 2 pours", unlockAfter:2 }
+    : { id:"limited-moves", name:"Limited Moves", description:"Solve before the move counter runs out" };
+};
 const frozenBottleIndex = () => activeModifier?.id === "frozen-reserve" && moves < activeModifier.unlockAfter && puzzle ? puzzle.bottles.length-1 : -1;
 
 const $ = id => document.getElementById(id);
@@ -512,17 +519,17 @@ function restoreDailyProgress(){
 function startGame(m, levelOverride=null){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
   selectedLevel = m==="endless" ? Math.max(1, Number(levelOverride || save.level) || 1) : null;
-  activeModifier = m==="endless" ? modifierForLevel(selectedLevel) : null;
+  activeModifier = null;
   let n;
   if(m==="daily"){
-    const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
+    const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()]; activeModifier = dailyModifierForDate(puzzleDate);
     $("title").textContent = WEEKDAYS[d.getDay()] + " · " + dateKey(d);
   } else {
-    const lv = selectedLevel; seedStr = "level-" + lv; n = levelColorCount(lv);
+    const lv = selectedLevel; activeModifier = modifierForLevel(lv); seedStr = "level-" + lv; n = levelColorCount(lv);
     $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
   puzzle = generate(seedStr, n);
-  if(activeModifier?.id === "limited-moves") activeModifier.moveLimit = moveLimitForLevel(selectedLevel, puzzle.par);
+  if(activeModifier?.id === "limited-moves") activeModifier.moveLimit = moveLimitForLevel(selectedLevel || 1, puzzle.par);
   state = puzzle.bottles.map(b=>b.slice());
   const resumed = restoreDailyProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
@@ -1215,6 +1222,7 @@ window.__cq = {
   syncStreakProtection,
   awardStreakFreeze,
   modifierForLevel,
+  dailyModifierForDate,
   moveLimitForLevel,
   get activeModifier(){ return activeModifier; },
   frozenBottleIndex,
