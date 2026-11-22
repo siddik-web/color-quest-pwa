@@ -179,7 +179,7 @@ test("streak shields are persisted, capped, and consumed on a single missed day"
   assert.match(html, /save\.streakGraceDate === k/);
   assert.match(html, /if\(save\.streakFreezes>=2\) return false/);
   assert.match(html, /id="streakFreeze"/);
-  assert.match(read("sw.js"), /color-quest-v32/);
+  assert.match(read("sw.js"), /color-quest-v33/);
 });
 
 test("daily modifiers are date-seeded and include both supported challenge types", () => {
@@ -212,4 +212,15 @@ test("puzzle generation fallback is a verified solvable board, never an arbitrar
   assert.match(html, /const verified = solve\(fallback, 10000\)/);
   assert.match(html, /return \{ bottles:fallback, par:verified \? verified\.length : 2 \}/);
   assert.match(html, /generatorFallback/);
+});
+
+test("daily calendar forecast previews deterministic modifiers and aggregates completion history", () => {
+  const html = read("index.html");
+  assert.match(html, /id="modifierForecast"/);
+  assert.match(html, /id="modifierHistory"/);
+  assert.match(html, /function renderModifierForecast\(\)/);
+  assert.match(html, /dailyModifierForDate\(k\)/);
+  assert.match(html, /Frozen Reserve:/);
+  assert.match(html, /Limited Moves:/);
+  assert.match(html, /renderModifierForecast\(\)/);
 });
