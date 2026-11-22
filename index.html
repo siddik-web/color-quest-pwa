@@ -105,8 +105,7 @@ dialog .row button{flex:1}
 <style>
 /* Color Quest 2D graphics refresh */
 :root{--bg:#172044;--panel:#263568;--text:#f7f8ff;--muted:#bbc7ee;--accent:#ffd24a;--glass:rgba(255,255,255,.14)}
-html,body{background:radial-gradient(ellipse at 50% 12%,#354b91 0%,#19254e 52%,#10172f 100%);background-attachment:fixed}
-#app{background-image:radial-gradient(circle at 12% 24%,#ffffff12 0 2px,transparent 3px),radial-gradient(circle at 88% 42%,#ffffff12 0 3px,transparent 4px);background-size:120px 150px,170px 190px}
+html,body{background:var(--bg)}
 h1{font-size:21px;font-weight:900;letter-spacing:.2px;text-shadow:0 2px 0 #101a42,0 4px 14px #0008}
 .chip{background:linear-gradient(180deg,#5269b2,#293b76);border:1px solid #91a9ed;border-bottom-width:3px;color:#e7eeff;box-shadow:0 3px 8px #0003}
 nav button,footer button{background:linear-gradient(180deg,#536dc0,#344988);border:1px solid #9bb8ff;border-bottom:4px solid #1c2c61;box-shadow:0 4px 8px #0004;text-shadow:0 1px 2px #18214a}
@@ -128,23 +127,6 @@ dialog h2{font-weight:900;text-shadow:0 2px 5px #0004}
 <style>
 
 
-/* Level-specific illustrated board environments */
-#board{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;margin:2px -4px 0;padding:18px 4px;min-height:210px;background:linear-gradient(180deg,var(--scene-sky,#8bd7ff) 0%,var(--scene-mid,#5e9ed8) 62%,var(--scene-ground,#315b87) 100%);box-shadow:inset 0 1px 0 #ffffff55,inset 0 -18px 35px #07132d35,0 10px 24px #07132d30;transition:background .35s ease}
-#board:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(circle at 12% 18%,#fff9 0 1px,transparent 2px),radial-gradient(circle at 78% 24%,#fff8 0 2px,transparent 3px),radial-gradient(circle at 48% 12%,#fff7 0 1px,transparent 2px),radial-gradient(ellipse at 18% 30%,var(--scene-glow,#fff7) 0 5%,transparent 38%),radial-gradient(ellipse at 85% 14%,#ffffff30 0 4%,transparent 28%);background-size:83px 79px,113px 97px,67px 61px,100% 100%,100% 100%;opacity:.9;filter:hue-rotate(var(--level-hue,0deg))}
-#board:after{content:"";position:absolute;left:-8%;right:-8%;bottom:-18px;height:34%;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 18% 100%,var(--scene-hill1,#397b78) 0 35%,transparent 36%),radial-gradient(ellipse at 77% 110%,var(--scene-hill2,#28645f) 0 43%,transparent 44%),linear-gradient(180deg,transparent 0 24%,var(--scene-ground,#315b87) 25%);filter:drop-shadow(0 -5px 10px #14274a25) hue-rotate(var(--level-hue,0deg));opacity:.95}
-#board .bottle{z-index:1}
-#board .seg{border:1px solid #ffffff35;filter:saturate(1.14) contrast(1.03);box-shadow:inset 0 4px 7px #ffffff70,inset 0 -4px 7px #0003,0 2px 3px #07132d35}
-#board .seg:after{left:7px;right:7px;top:3px;height:5px;background:linear-gradient(90deg,#fff0,#ffffffaa,#fff0)}
-body[data-scene="meadow"]{--scene-sky:#8de1ff;--scene-mid:#6cc5d9;--scene-ground:#398d83;--scene-hill1:#6fbd77;--scene-hill2:#398b70;--scene-glow:#fff5a8}
-body[data-scene="sunset"]{--scene-sky:#ffb18d;--scene-mid:#d978a0;--scene-ground:#76518e;--scene-hill1:#a65d83;--scene-hill2:#634577;--scene-glow:#ffe3a0}
-body[data-scene="ocean"]{--scene-sky:#58d4e8;--scene-mid:#258eb9;--scene-ground:#155078;--scene-hill1:#2b9d9d;--scene-hill2:#17677f;--scene-glow:#b5ffff}
-body[data-scene="candy"]{--scene-sky:#f6b8ef;--scene-mid:#a88bea;--scene-ground:#6855ad;--scene-hill1:#d17fc5;--scene-hill2:#8069c8;--scene-glow:#fff0ff}
-body[data-scene="volcano"]{--scene-sky:#ff986e;--scene-mid:#b94c65;--scene-ground:#512e56;--scene-hill1:#8d405b;--scene-hill2:#4d304f;--scene-glow:#ffd28a}
-body[data-scene="space"]{--scene-sky:#27366f;--scene-mid:#242b59;--scene-ground:#171c3d;--scene-hill1:#414a83;--scene-hill2:#292e60;--scene-glow:#a7baff}
-body[data-scene="aurora"]{--scene-sky:#4c9a9e;--scene-mid:#315c88;--scene-ground:#202e59;--scene-hill1:#387d79;--scene-hill2:#294c73;--scene-glow:#a4ffd9}
-@media(max-width:380px){#board{border-radius:22px;padding:12px 2px;min-height:185px}}
-@media(prefers-reduced-motion:reduce){#board{transition:none}}
-
 /* Final polish: custom vector controls, mobile safe-area and tactile feedback */
 .brand-mascot{width:34px;height:30px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 2px 3px #101a42)}
 .nav-icon{display:block;width:27px;height:27px;margin:0 auto;filter:drop-shadow(0 2px 2px #101a42)}
@@ -158,13 +140,17 @@ footer button{display:flex;align-items:center;justify-content:center;gap:2px;min
 .bottle.sel{outline:2px solid #ffe477;outline-offset:3px;filter:drop-shadow(0 8px 10px #ffdc6955)}
 .seg{position:relative;overflow:hidden}
 .seg:after{content:"";position:absolute;left:5px;right:5px;top:2px;height:4px;border-radius:99px;background:#fff6}
-.stream{width:7px;filter:drop-shadow(0 0 4px var(--liquid));border:1px solid #ffffff55;background:linear-gradient(90deg,#ffffff55,var(--liquid),#ffffff88);box-shadow:0 0 9px var(--liquid);transform-origin:top center;overflow:hidden}
-.stream:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,#fff9,transparent);animation:streamShimmer .32s linear infinite}
+.stream{position:fixed;width:7px;border-radius:99px;z-index:8;pointer-events:none;transform-origin:top center;background:linear-gradient(90deg,#ffffff66,var(--liquid),#ffffffbb);border:1px solid #ffffff66;filter:drop-shadow(0 0 5px var(--liquid));animation:liquid-flow .34s ease-out both}
+.stream:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,#fff9,transparent);animation:streamShimmer .28s linear infinite}
+@keyframes liquid-flow{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0)}}
 @keyframes streamShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
-.bottle.pouring{z-index:6;transform-origin:50% 12%;filter:drop-shadow(0 10px 10px #0006)}
+.bottle.pouring{z-index:6;transform-origin:50% 12%;filter:drop-shadow(0 10px 10px #0006);animation:bottle-tilt .28s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes bottle-tilt{to{transform:rotate(var(--pour-rotation))}}
+.liquid-drop{position:fixed;width:10px;height:13px;z-index:9;pointer-events:none;border-radius:55% 55% 60% 60%;background:var(--liquid);border:1px solid #ffffff99;box-shadow:0 0 9px var(--liquid);transform:rotate(45deg);animation:drop-splash .34s ease-in both}
+@keyframes drop-splash{0%{opacity:0;transform:translateY(-8px) scale(.55) rotate(45deg)}45%{opacity:1;transform:translateY(2px) scale(1) rotate(45deg)}100%{opacity:0;transform:translateY(13px) scale(.35) rotate(45deg)}}
 .bottle.receiving{animation:receive .38s cubic-bezier(.2,.8,.2,1)}
-@keyframes receive{0%,100%{filter:brightness(1)}35%{filter:brightness(1.32) drop-shadow(0 0 9px var(--accent))}}
-@media(prefers-reduced-motion:reduce){.stream:after{animation:none}.bottle.receiving{animation:none}}
+@keyframes receive{0%,100%{filter:brightness(1)}35%{filter:brightness(1.32) drop-shadow(0 0 9px var(--liquid))}}
+@media(prefers-reduced-motion:reduce){.stream:after,.stream,.liquid-drop,.bottle.pouring{animation:none}.bottle.receiving{animation:none}}
 #win[open]{animation:popIn .22s cubic-bezier(.2,.8,.2,1)}
 @keyframes popIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 button:focus-visible,.bottle:focus-visible{outline:3px solid #fff1a8;outline-offset:3px}
@@ -447,14 +433,6 @@ function restoreDailyProgress(){
   return true;
 }
 
-function applyLevelScene(level){
-  const scenes=["meadow","sunset","ocean","candy","volcano","space","aurora"];
-  const n=Math.max(1,Number(level)||1);
-  document.body.dataset.scene=mode==="daily"?"meadow":scenes[Math.floor((n-1)/5)%scenes.length];
-  document.body.dataset.level=String(n);
-  document.body.style.setProperty("--level-hue", (((n*13)%25)-12)+"deg");
-}
-
 function startGame(m, levelOverride=null){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
   selectedLevel = m==="endless" ? Math.max(1, Number(levelOverride || save.level) || 1) : null;
@@ -466,7 +444,6 @@ function startGame(m, levelOverride=null){
     const lv = selectedLevel; seedStr = "level-" + lv; n = levelColorCount(lv);
     $("title").textContent = "Level " + lv + " · " + difficultyForLevel(lv);
   }
-  applyLevelScene(selectedLevel || 1);
   puzzle = generate(seedStr, n);
   state = puzzle.bottles.map(b=>b.slice());
   const resumed = restoreDailyProgress();
@@ -515,7 +492,10 @@ function doPour(a, b){
   const color = topOf(state[a]);
   const els = $("board").children, sEl = els[a], tEl = els[b];
   let tx = 0, ty = 0, rot = 0;
+  const stream = document.createElement("div");
+  const drop = document.createElement("div");
   const finish = ()=>{
+    stream.remove(); drop.remove();
     const n = pour(state, a, b); moves++; sel = -1;
     fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot };
     busy = false; render();
@@ -528,28 +508,39 @@ function doPour(a, b){
   sEl.classList.add("pouring");
   const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
   const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
-  rot = dir * 65;
-  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2 * dir * dir;
-  tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - Math.abs(mouthX) * dir;
-  ty = (tr.top - 14) - (sr.top + sr.height/2) + Math.cos(rot*Math.PI/180) * sr.height/2;
-  sEl.style.zIndex = 5; sEl.style.transition = "transform .3s cubic-bezier(.2,.8,.2,1)";
-  sEl.style.transform = "translate("+tx+"px,"+ty+"px) rotate("+rot+"deg)";
+  rot = dir * 62;
+  tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - dir * 10;
+  ty = (tr.top - 12) - (sr.top + 18);
+  sEl.style.zIndex = 6;
+  sEl.style.setProperty("--pour-rotation", rot+"deg");
   sfx.pour();
-  const stream = document.createElement("div");
-  const streamTimer = setTimeout(()=>{
+  const pourTimer = setTimeout(()=>{
+    const tilted = sEl.getBoundingClientRect();
+    const target = tEl.getBoundingClientRect();
+    const x1 = dir > 0 ? tilted.right - 7 : tilted.left + 7;
+    const y1 = tilted.top + 14;
+    const x2 = target.left + target.width/2;
+    const y2 = target.top + 12;
+    const dx = x2-x1, dy = y2-y1;
+    const distance = Math.max(18,Math.hypot(dx,dy));
+    const angle = Math.atan2(dy,dx)*180/Math.PI-90;
     stream.className = "stream";
-    stream.style.setProperty("--liquid", COLORS[color]);
-    stream.style.left = (tr.left + tr.width/2 - 3) + "px";
-    stream.style.top = (tr.top - 10) + "px";
-    stream.style.height = Math.max(24, tr.height * .75) + "px";
+    stream.style.setProperty("--liquid",COLORS[color]);
+    stream.style.left = x1+"px";
+    stream.style.top = y1+"px";
+    stream.style.height = distance+"px";
+    stream.style.transform = "rotate("+angle+"deg)";
+    drop.className = "liquid-drop";
+    drop.style.setProperty("--liquid",COLORS[color]);
+    drop.style.left = (x2-5)+"px";
+    drop.style.top = (y2-3)+"px";
     tEl.classList.add("receiving");
-    document.body.appendChild(stream);
-  }, 280);
+    document.body.append(stream,drop);
+  },280);
   setTimeout(()=>{
-    clearTimeout(streamTimer);
-    stream.remove();
+    clearTimeout(pourTimer);
     finish();
-  }, 650);
+  },760);
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
