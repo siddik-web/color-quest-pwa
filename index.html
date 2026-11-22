@@ -325,10 +325,10 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem("cq."+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
-const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true, music:true, musicVol:0.18,
+const DEF = { streak:0, best:0, last:null, streakFreezes:0, streakFreezeMilestones:{}, streakGraceDate:null, streakGraceBase:0, won:{}, stars:0, level:1, cb:false, snd:true, music:true, musicVol:0.18,
   coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0}, levelResults:{} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {}; save.ownedCosmetics = Object.assign({}, save.ownedCosmetics); save.equippedCosmetics = Object.assign({bottle:"",board:"",pour:""}, save.equippedCosmetics);
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.levelResults = save.levelResults || {}; save.economyMilestones = save.economyMilestones || {}; save.streakFreezes=Math.max(0,Number(save.streakFreezes)||0); save.streakFreezeMilestones=save.streakFreezeMilestones||{}; save.ownedCosmetics = Object.assign({}, save.ownedCosmetics); save.equippedCosmetics = Object.assign({bottle:"",board:"",pour:""}, save.equippedCosmetics);
 
 /* ---------- original procedural sound + adaptive ambient music (no external files) ---------- */
 const sfx = (()=>{
@@ -606,8 +606,15 @@ function win(){
     if(!save.won[k]){
       save.stars += st;
       const prev = new Date(k+"T12:00:00"); prev.setDate(prev.getDate()-1);
-      save.streak = (save.last === dateKey(prev)) ? save.streak+1 : 1;
-      save.last = k; save.best = Math.max(save.best, save.streak);
+      save.streak = (save.streakGraceDate === k) ? (Number(save.streakGraceBase)||0)+1 : (save.last === dateKey(prev)) ? save.streak+1 : 1;
+      save.last = k; save.streakGraceDate = null; save.streakGraceBase = 0; save.best = Math.max(save.best, save.streak);
+      if(save.streak>0 && save.streak%7===0){
+        const milestone=String(save.streak);
+        if(!save.streakFreezeMilestones[milestone]){
+          save.streakFreezeMilestones[milestone]=true;
+          if(save.streakFreezes<2){save.streakFreezes++;note="7-day milestone! You earned a Streak Shield 🛡️ · "+save.streak+" day streak";}
+        }
+      }
       save.won[k] = { moves, stars: st };
       save.stats.daily++;
       coins = 25 + st*10 + Math.min(save.streak,7)*5; xp = 40 + st*15;
@@ -800,8 +807,26 @@ syncSnd();syncMusicControls();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
 $("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); save.ownedCosmetics = {}; save.equippedCosmetics = { bottle:"", board:"", pour:"" }; LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
-/* streak decay if a day was missed */
-(function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
+/* Streak shields protect one missed daily challenge day. A shield is consumed only when the player returns. */
+function syncStreakProtection(today=dateKey()){
+  if(!save.last || save.last===today) return;
+  const lastDate=new Date(save.last+"T12:00:00"), todayDate=new Date(today+"T12:00:00");
+  const gap=Math.round((todayDate-lastDate)/86400000);
+  if(gap===2 && save.streakFreezes>0 && save.streak>0){
+    if(save.streakGraceDate!==today){
+      save.streakFreezes--;
+      save.streakGraceDate=today;
+      save.streakGraceBase=save.streak;
+      LS.set("save",save);
+      toast("Streak Shield used. Your "+save.streak+"-day streak is protected!");
+    }
+    return;
+  }
+  if(gap>1 && save.streakGraceDate!==today){
+    save.streak=0;save.streakGraceDate=null;save.streakGraceBase=0;LS.set("save",save);
+  }
+}
+syncStreakProtection();
 
 /* ---------- progression: coins, XP, trophies, themes, daily reward ---------- */
 const TITLES = ["Rookie","Mixer","Sorter","Pourer","Alchemist","Mastermind","Legend"];
@@ -809,7 +834,7 @@ const xpNeed = l => 80 + (l-1)*40;
 const titleOf = l => TITLES[Math.min(TITLES.length-1, Math.floor((l-1)/3))];
 function addXp(n){ save.xp += n; let ups = 0; while(save.xp >= xpNeed(save.plv)){ save.xp -= xpNeed(save.plv); save.plv++; save.coins += 20; ups++; } return ups; }
 function hud(){
-  $("streak").textContent = save.streak; $("stars").textContent = save.stars; $("coins").textContent = save.coins;
+  $("streak").textContent = save.streak; $("streakFreeze").textContent = save.streakFreezes ? "🛡️ "+save.streakFreezes : ""; $("stars").textContent = save.stars; $("coins").textContent = save.coins;
   $("plv").textContent = "Lv " + save.plv + " · " + titleOf(save.plv);
   $("xpfill").style.width = Math.min(100, Math.round(save.xp / xpNeed(save.plv) * 100)) + "%";
   $("xptxt").textContent = save.xp + "/" + xpNeed(save.plv) + " XP";
@@ -1118,7 +1143,7 @@ function confetti(){
 document.addEventListener("visibilitychange", ()=>{
   if(document.visibilityState!=="visible") return;
   const y = new Date(); y.setDate(y.getDate()-1);
-  if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
+  syncStreakProtection();
   if(mode==="daily" && puzzleDate !== dateKey() && (moves===0 || finished)){ startGame("daily"); } else render();
   checkDailyReward();
 });
@@ -1160,6 +1185,7 @@ window.__cq = {
   get economyMilestones(){ return save.economyMilestones; },
   renderQuests,
   get quests(){ ensureQuestState(); return save.quests; },
+  syncStreakProtection,
   get generatorFallback(){ const n=4; const b=Array.from({length:n},(_,c)=>Array(CAP).fill(c)); b[0]=[0,0,0]; b[1]=[1,1,1]; b.splice(2,0,[0,1]); b.push([],[]); const sol=solve(b,10000); return !!sol && isSolved(sol.reduce((s,m)=>{pour(s,m[0],m[1]);return s;},b.map(x=>x.slice()))); }
 };
 })();
