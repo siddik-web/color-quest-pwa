@@ -526,13 +526,16 @@ function doPour(a, b){
   sEl.classList.add("pouring");
   const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
   const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
-  rot = dir * 62;
-  tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - dir * 10;
-  ty = (tr.top - 12) - (sr.top + 18);
+  rot = dir * 58;
+  // Keep the bottle anchored in its own board slot. Pivot at the pouring-side
+  // upper corner so its body swings away from the receiving bottle.
+  tx = 0;
+  ty = 0;
   sEl.style.zIndex = 6;
+  sEl.style.transformOrigin = dir > 0 ? "100% 12%" : "0% 12%";
   sEl.style.setProperty("--pour-rotation", rot+"deg");
-  sEl.style.setProperty("--pour-x", tx+"px");
-  sEl.style.setProperty("--pour-y", ty+"px");
+  sEl.style.setProperty("--pour-x", "0px");
+  sEl.style.setProperty("--pour-y", "0px");
   sfx.pour();
   const pourTimer = setTimeout(()=>{
     const tilted = sEl.getBoundingClientRect();
