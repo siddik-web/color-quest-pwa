@@ -276,6 +276,31 @@ test("Limited Moves activates on alternating milestones with a par-based fair ca
   await expect(page.locator("#modifierStatus")).toContainText("Limited Moves");
 });
 
+test("daily challenge modifiers rotate deterministically by date and survive daily initialization", async ({ page }) => {
+  const schedule = await page.evaluate(() => ({
+    first: window.__cq.dailyModifierForDate("2026-11-22").id,
+    sameDay: window.__cq.dailyModifierForDate("2026-11-22").id,
+    nextDay: window.__cq.dailyModifierForDate("2026-11-23").id
+  }));
+  expect(schedule.first).toBe(schedule.sameDay);
+  expect(schedule.nextDay).not.toBe(schedule.first);
+
+  await page.evaluate(() => window.__cq.startGame("daily"));
+  const active = await page.evaluate(() => ({
+    id: window.__cq.activeModifier.id,
+    limit: window.__cq.activeModifier.moveLimit || null,
+    par: window.__cq.puzzle.par
+  }));
+  await expect(page.locator("#modifierStatus")).not.toBeEmpty();
+  if (active.id === "limited-moves") {
+    expect(active.limit).toBe(window.__cq.moveLimitForLevel(1, active.par));
+    await expect(page.locator("#modifierStatus")).toContainText(active.limit + " left");
+  } else {
+    await expect(page.locator("#board .bottle.frozen")).toHaveCount(1);
+    await expect(page.locator("#modifierStatus")).toContainText("2 pours to thaw");
+  }
+});
+
 test("ordinary levels do not enable a special puzzle modifier", async ({ page }) => {
   await page.evaluate(() => window.__cq.startGame("endless", 4));
   await expect(page.locator("#modifierStatus")).toBeEmpty();
