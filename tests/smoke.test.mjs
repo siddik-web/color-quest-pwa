@@ -88,3 +88,13 @@ test("endless progression has explicit difficulty tiers and color milestones", (
   assert.match(html, /Level " \+ lv \+ " · " \+ difficultyForLevel\(lv\)/);
   assert.match(html, /levelColorCount,\s*difficultyForLevel,\s*generate,\s*isSolved,\s*solve/);
 });
+
+test("level map and persistent unlock data are wired into the game", () => {
+  const html = read("index.html");
+  assert.match(html, /id="levelMapBtn"/);
+  assert.match(html, /id="levelDlg"/);
+  assert.match(html, /id="levelGrid"/);
+  assert.match(html, /function renderLevelMap\(\)/);
+  assert.match(html, /save\.levelResults\[String\(completedLevel\)\]/);
+  assert.match(html, /tile\.disabled=!unlocked/);
+});
