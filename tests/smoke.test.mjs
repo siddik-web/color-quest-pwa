@@ -171,6 +171,17 @@ test("daily and weekly quests have stable reset keys, progress, and claimable re
   assert.match(html, /QUEST_REWARDS = \{ daily:20, weekly:100 \}/);
 });
 
+test("streak shields are persisted, capped, and consumed on a single missed day", () => {
+  const html = read("index.html");
+  assert.match(html, /streakFreezes:0/);
+  assert.match(html, /function syncStreakProtection\(/);
+  assert.match(html, /function awardStreakFreeze\(streak\)/);
+  assert.match(html, /save\.streakGraceDate === k/);
+  assert.match(html, /if\(save\.streakFreezes<2\)/);
+  assert.match(html, /id="streakFreeze"/);
+  assert.match(html, /color-quest-v29/);
+});
+
 test("puzzle generation fallback is a verified solvable board, never an arbitrary shuffled dead end", () => {
   const html = read("index.html");
   assert.match(html, /Guaranteed-solvable fallback/);
