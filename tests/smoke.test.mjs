@@ -111,15 +111,25 @@ test("first-time tutorial is accessible, skippable and persisted", () => {
 
 test("solver keeps bottle indexes stable while tracking visited states", () => {
   const html = read("index.html");
-  assert.ok(html.includes('const key = s => s.map(b=>b.join("")).join("|");'));
+  assert.match(html, /const key = s => JSON\.stringify\(s\)/);
 });
 
 test("economy milestones, replay star accounting and responsive dialogs are present", () => {
   const html = read("index.html");
   assert.match(html, /economyMilestones = save\.economyMilestones \|\| \{\}/);
   assert.match(html, /const milestoneRewards = \{5:50,10:100,25:250,50:500\}/);
-  assert.match(html, /function applyReplayResult\(previous, earned\)/);
+  assert.match(html, /function applyReplayResult\(previous, earned, moves/);
   assert.match(html, /save\.stars \+= starDelta/);
   assert.match(html, /max-height:min\(82dvh,720px\)/);
   assert.match(html, /@media\(max-width:380px\)/);
+});
+
+test("level-specific illustrated board environments and glossy color layers are present", () => {
+  const html = read("index.html");
+  for (const scene of ["meadow","sunset","ocean","candy","volcano","space","aurora"]) assert.match(html, new RegExp('data-scene="' + scene + '"'));
+  assert.match(html, /function applyLevelScene\(level\)/);
+  assert.match(html, /document\.body\.dataset\.scene/);
+  assert.match(html, /#board:before/);
+  assert.match(html, /#board:after/);
+  assert.match(html, /#board \.seg/);
 });
