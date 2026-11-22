@@ -2,12 +2,14 @@ import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => {
+    localStorage.clear();
+    const d = new Date();
+    const today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    localStorage.setItem("cq.save", JSON.stringify({ dr: { last: today, day: 1 } }));
+  });
   await page.reload();
   await expect(page.locator(".bottle").first()).toBeVisible();
-  if (await page.locator("#drDlg").evaluate(el => el.open)) {
-    await page.locator("#drClaim").click();
-  }
 });
 
 test("daily puzzle loads with interactive bottles and no runtime errors", async ({ page }) => {
