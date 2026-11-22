@@ -1,0 +1,70 @@
+name: Android build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "sw.js"
+      - "manifest.webmanifest"
+      - "icons/**"
+      - "native/**"
+      - "scripts/**"
+      - "android/**"
+      - "package.json"
+      - "package-lock.json"
+      - "capacitor.config.json"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.CQ_KEYSTORE_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - name: Bundle web app and sync into the Android project
+        run: npm run sync
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK (installable for testing, uses Google test ads)
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: color-quest-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build signed release bundle (.aab) for Google Play
+        if: env.KEYSTORE_B64 != ''
+        working-directory: android
+        env:
+          CQ_KEYSTORE_PASSWORD: ${{ secrets.CQ_KEYSTORE_PASSWORD }}
+          CQ_KEY_ALIAS: ${{ secrets.CQ_KEY_ALIAS }}
+          CQ_KEY_PASSWORD: ${{ secrets.CQ_KEY_PASSWORD }}
+          CQ_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          export CQ_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks"
+          ./gradlew bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        if: env.KEYSTORE_B64 != ''
+        with:
+          name: color-quest-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab

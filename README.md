@@ -8,3 +8,7 @@ A daily colour-sorting puzzle that works offline. Installable as a PWA.
 - Colour-blind symbol mode
 
 Play: https://siddik-web.github.io/color-quest-pwa/
+
+## Android app
+
+See [ANDROID.md](ANDROID.md) for building the Android app, AdMob setup and Google Play publishing.

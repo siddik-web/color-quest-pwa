@@ -1,0 +1,9 @@
+{
+  "appId": "com.siddiqur.colorquest",
+  "appName": "Color Quest",
+  "webDir": "www",
+  "backgroundColor": "#14172b",
+  "android": {
+    "allowMixedContent": false
+  }
+}

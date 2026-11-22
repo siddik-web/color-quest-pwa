@@ -15,7 +15,7 @@
 :root{--bg:#14172b;--panel:#1f2340;--text:#f2f4ff;--muted:#9aa0c8;--accent:#ffd24a;--glass:rgba(255,255,255,.12)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
 html,body{margin:0;height:100%;touch-action:manipulation;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overscroll-behavior:none}
-#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:560px;margin:0 auto;padding:max(env(safe-area-inset-top),var(--safe-area-inset-top,0px)) 14px max(env(safe-area-inset-bottom),var(--safe-area-inset-bottom,0px))}
 header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 6px}
 h1{font-size:18px;margin:0;letter-spacing:.5px}
 .chips{display:flex;gap:6px}
@@ -108,6 +108,7 @@ dialog .row button{flex:1}
   <h2 id="winTitle">Solved!</h2>
   <div class="stars" id="winStars"></div>
   <div id="winText" style="color:var(--muted)"></div>
+  <div class="row"><button id="doubleBtn" hidden>📺 Double coins</button></div>
   <div class="row"><button id="share">Share</button><button id="next" class="on">Continue</button></div>
 </dialog>
 
@@ -120,10 +121,17 @@ dialog .row button{flex:1}
 <dialog id="setDlg">
   <h2>Settings</h2>
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
+  <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
   <div class="row"><button id="sndBtn">Sound: On</button></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="adDlg">
+  <h2>📺 Need coins?</h2>
+  <div id="adMsg" style="color:var(--muted)"></div>
+  <div class="row"><button id="adNo">Not now</button><button id="adYes" class="on">Watch ad</button></div>
 </dialog>
 
 <dialog id="shopDlg">
@@ -390,6 +398,8 @@ function win(){
   $("winTitle").textContent = st===3 ? "Perfect!" : "Solved!";
   $("winStars").textContent = "⭐".repeat(st) + "☆".repeat(3-st);
   $("winText").innerHTML = moves + " moves (par " + puzzle.par + ")" + rewardLine + "<br>" + note;
+  lastWinCoins = fresh ? coins : 0;
+  const dbl = $("doubleBtn"); dbl.hidden = !(lastWinCoins > 0 && Ads.enabled && Ads.rReady); dbl.textContent = "📺 Double coins (+" + lastWinCoins + " 🪙)";
   sfx.win();
   $("win").showModal();
   if(st>=2) confetti();
@@ -416,7 +426,7 @@ $("hint").onclick = ()=>{
   const m = nextHint();
   if(!m){ toast("No hint available"); return; }
   const k = exactKey(state), cost = (hintsUsed === 0 || hintPaid === k) ? 0 : 5;
-  if(cost && save.coins < cost){ toast("Need 5 🪙 for another hint. Win puzzles to earn coins."); sfx.bad(); return; }
+  if(cost && save.coins < cost){ offerAd("Need 5 🪙 for another hint."); return; }
   if(cost){ save.coins -= cost; LS.set("save", save); }
   if(hintPaid !== k){ hintsUsed++; hintPaid = k; }
   const [i,j] = m; sel = i; render();
@@ -425,11 +435,11 @@ $("hint").onclick = ()=>{
 $("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
 $("mEndless").onclick = ()=>{ if(!busy) startGame("endless"); };
 $("next").onclick = ()=>$("win").close();
-$("win").addEventListener("close", ()=>{ if(finished && mode==="endless") startGame("endless"); });
+$("win").addEventListener("close", ()=>{ if(finished && mode==="endless"){ startGame("endless"); if(save.level > ADS_CONFIG.interstitialEvery && (save.level-1) % ADS_CONFIG.interstitialEvery === 0) Ads.interstitial(); } });
 $("share").onclick = async ()=>{
   const st = starsFor(moves, puzzle.par);
   const text = "Color Quest " + (mode==="daily"? dateKey() : "Level "+(save.level-1)) + "\n" + "⭐".repeat(st) + "☆".repeat(3-st) + " · " + moves + " moves (par " + puzzle.par + ")" + (mode==="daily" ? "\n🔥 " + save.streak : "");
-  try{ if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast("Copied!"); } }catch(e){}
+  try{ if(NATIVE && window.CQNative) await window.CQNative.Share.share({ text }); else if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast("Copied!"); } }catch(e){}
 };
 
 /* calendar */
@@ -520,8 +530,76 @@ function applyTheme(id){
   const m = document.querySelector('meta[name="theme-color"]'); if(m) m.setAttribute("content", t.bg);
   if(state.length) render();
 }
-/* Ads are OFF. Flip enabled once a real ad provider is wired in; the rewarded-ad button stays hidden until then. */
-const Ads = { enabled:false, rewarded(cb){ cb(false); } };
+/* ---------- ads: ONLY inside the Android app (AdMob). The website / PWA never shows ads. ---------- */
+const ADS_CONFIG = {
+  testing: true,                                           // set to false for the release build (see ANDROID.md)
+  rewardedId:     "ca-app-pub-3940256099942544/5224354917", // Google's public TEST ad unit; replace with yours
+  interstitialId: "ca-app-pub-3940256099942544/1033173712", // Google's public TEST ad unit; replace with yours
+  interstitialEvery: 4                                      // Endless levels between interstitials
+};
+const NATIVE = !!(window.Capacitor && (typeof window.Capacitor.isNativePlatform === "function" ? window.Capacitor.isNativePlatform() : /; wv\)/.test(navigator.userAgent)));
+const Ads = {
+  enabled:false, N:null, rReady:false, iReady:false, rCb:null, rGot:false, last:0,
+  loadNative(){ return new Promise(res=>{ if(window.CQNative) return res(true); const sc = document.createElement("script"); sc.src = "native.js"; sc.onload = ()=>res(true); sc.onerror = ()=>res(false); document.head.appendChild(sc); }); },
+  async init(){
+    if(!NATIVE) return;
+    try{
+      if(!(await this.loadNative())) return;
+      const N = this.N = window.CQNative, A = N.AdMob, RE = N.RewardAdPluginEvents, IE = N.InterstitialAdPluginEvents;
+      try{ N.SystemBars.setStyle({ style: "DARK" }); }catch(e){}
+      try{ N.App.addListener("backButton", ()=>{ const o = document.querySelectorAll("dialog[open]"); if(o.length) o[o.length-1].close(); else N.App.exitApp(); }); }catch(e){}
+      await A.initialize({ initializeForTesting: ADS_CONFIG.testing });
+      // EU/UK consent (Google UMP): shows the consent form only where it is required
+      try{
+        let info = await A.requestConsentInfo();
+        if(info.isConsentFormAvailable && info.status === N.AdmobConsentStatus.REQUIRED){ await A.showConsentForm(); info = await A.requestConsentInfo(); }
+        $("privBtn").hidden = info.privacyOptionsRequirementStatus !== "REQUIRED";
+        if(info.canRequestAds === false) return;
+      }catch(e){}
+      A.addListener(RE.Loaded, ()=>{ this.rReady = true; });
+      A.addListener(RE.FailedToLoad, ()=>{ this.rReady = false; setTimeout(()=>this.loadRewarded(), 30000); });
+      A.addListener(RE.Rewarded, ()=>{ this.rGot = true; });
+      A.addListener(RE.Dismissed, ()=>{ const ok = this.rGot; this.rGot = false; this.rReady = false; this.loadRewarded(); const cb = this.rCb; this.rCb = null; if(cb) cb(ok); });
+      A.addListener(RE.FailedToShow, ()=>{ this.rReady = false; this.loadRewarded(); const cb = this.rCb; this.rCb = null; if(cb) cb(false); });
+      A.addListener(IE.Loaded, ()=>{ this.iReady = true; });
+      A.addListener(IE.FailedToLoad, ()=>{ this.iReady = false; setTimeout(()=>this.loadInterstitial(), 60000); });
+      A.addListener(IE.Dismissed, ()=>{ this.iReady = false; this.loadInterstitial(); });
+      this.enabled = true; this.loadRewarded(); this.loadInterstitial();
+    }catch(e){ this.enabled = false; }
+  },
+  loadRewarded(){ if(this.enabled) this.N.AdMob.prepareRewardVideoAd({ adId: ADS_CONFIG.rewardedId, isTesting: ADS_CONFIG.testing }).catch(()=>{}); },
+  loadInterstitial(){ if(this.enabled) this.N.AdMob.prepareInterstitial({ adId: ADS_CONFIG.interstitialId, isTesting: ADS_CONFIG.testing }).catch(()=>{}); },
+  /* cb(true) only when the player watched the ad to the end and earned the reward */
+  rewarded(cb){
+    if(!this.enabled || this.rCb){ cb(false); return; }
+    if(!this.rReady){ toast("Ad not ready yet. Try again in a moment."); this.loadRewarded(); cb(false); return; }
+    this.rCb = cb; this.rGot = false;
+    this.N.AdMob.showRewardVideoAd().catch(()=>{ const c = this.rCb; this.rCb = null; if(c) c(false); });
+  },
+  /* never shown in the daily puzzle; at most one every 2 minutes */
+  interstitial(){
+    if(!this.enabled || !this.iReady || Date.now() - this.last < 120000) return;
+    this.last = Date.now(); this.N.AdMob.showInterstitial().catch(()=>{});
+  }
+};
+let lastWinCoins = 0;
+function grantAdCoins(){ save.coins += 30; LS.set("save", save); hud(); toast("+30 🪙"); sfx.done(); }
+function offerAd(msg){
+  sfx.bad();
+  if(Ads.enabled && Ads.rReady){ $("adMsg").textContent = msg + " Watch a short ad for 30 🪙?"; $("adDlg").showModal(); }
+  else toast(msg + " Win puzzles to earn coins.");
+}
+$("privBtn").onclick = ()=>{ if(Ads.enabled) Ads.N.AdMob.showPrivacyOptionsForm().catch(()=>{}); };
+$("adNo").onclick = ()=>$("adDlg").close();
+$("adYes").onclick = ()=>{ $("adDlg").close(); Ads.rewarded(ok=>{ if(ok) grantAdCoins(); }); };
+$("doubleBtn").onclick = ()=>{
+  const n = lastWinCoins; if(!n) return;
+  lastWinCoins = 0; $("doubleBtn").hidden = true;
+  Ads.rewarded(ok=>{
+    if(ok){ save.coins += n; LS.set("save", save); hud(); $("winText").innerHTML += "<br>📺 Bonus +" + n + " 🪙"; sfx.done(); }
+    else { lastWinCoins = n; $("doubleBtn").hidden = false; }
+  });
+};
 function renderShop(){
   $("shopCoins").textContent = save.coins;
   const box = $("shopList"); box.innerHTML = "";
@@ -544,14 +622,14 @@ function renderShop(){
 }
 $("mShop").onclick = ()=>{ renderShop(); $("shopDlg").showModal(); };
 $("shopClose").onclick = ()=>$("shopDlg").close();
-$("adBtn").onclick = ()=>Ads.rewarded(ok=>{ if(ok){ save.coins += 30; LS.set("save", save); hud(); renderShop(); } });
+$("adBtn").onclick = ()=>Ads.rewarded(ok=>{ if(ok){ grantAdCoins(); renderShop(); } });
 $("mAch").onclick = ()=>{ renderAch(); $("achDlg").showModal(); };
 $("achClose").onclick = ()=>$("achDlg").close();
 
 $("bottle").onclick = ()=>{
   if(busy || finished) return;
   if(extraBottles){ toast("Extra bottle already added"); return; }
-  if(save.coins < 30){ toast("Need 30 🪙. Win puzzles to earn coins."); sfx.bad(); return; }
+  if(save.coins < 30){ offerAd("Need 30 🪙 for an extra bottle."); return; }
   save.coins -= 30; LS.set("save", save); extraBottles = 1;
   state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render();
 };
@@ -603,11 +681,12 @@ $("install").onclick = async ()=>{ if(!deferred) return; deferred.prompt(); awai
 window.addEventListener("appinstalled", ()=>{ $("install").hidden = true; });
 
 /* service worker */
-if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
 
 applyTheme(save.theme);
 startGame("daily");
 setTimeout(checkDailyReward, 350);
+Ads.init();
 window.__cq = { nextHint, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
 })();
 </script>
