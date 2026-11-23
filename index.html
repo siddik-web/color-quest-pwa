@@ -77,6 +77,21 @@ dialog .row button{flex:1}
 .dr.got{opacity:.45}
 .dr.now{outline:2px solid var(--accent);background:rgba(255,210,74,.15)}
 #confetti{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#stuck{display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(255,90,95,.16);border:1px solid rgba(255,90,95,.5);border-radius:12px;padding:8px 10px;font-size:13px;margin:0 0 6px}
+#stuck[hidden]{display:none}
+#stuck div{display:flex;gap:6px}
+#stuck button{padding:6px 10px;font-size:13px}
+#mAch{position:relative}
+#mAch.dot::after{content:"";position:absolute;top:5px;right:7px;width:9px;height:9px;border-radius:50%;background:#ff5a5f}
+.qrow{display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0}
+.qrow .qt{flex:1;font-size:14px}
+.qrow .qbar{height:6px;background:var(--glass);border-radius:99px;margin:5px 0 2px;overflow:hidden}
+.qrow .qbar i{display:block;height:100%;background:linear-gradient(90deg,#7dffb0,var(--accent))}
+.qrow small{color:var(--muted)}
+.qrow button{flex:0 0 auto;min-width:92px;font-size:13px}
+.sec{text-align:left;font-weight:700;margin:12px 0 2px}
+#howList{text-align:left;line-height:1.5;padding-left:20px;margin:10px 0}
+#howList li{margin:8px 0}
 </style>
 </head>
 <body>
@@ -95,6 +110,7 @@ dialog .row button{flex:1}
     <button id="mSet" aria-label="Settings">⚙️</button>
   </nav>
   <div id="info"><span id="title"></span><span id="moves"></span></div>
+  <div id="stuck" hidden><span>No winning path from here.</span><div><button id="stUndo">↶ Undo</button><button id="stBottle">🧪 Add bottle</button></div></div>
   <div id="board"></div>
   <footer>
     <button id="undo">↶ Undo</button>
@@ -121,11 +137,23 @@ dialog .row button{flex:1}
 <dialog id="setDlg">
   <h2>Settings</h2>
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
+  <div class="row"><button id="howBtn">How to play</button></div>
   <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
   <div class="row"><button id="sndBtn">Sound: On</button></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
+</dialog>
+
+<dialog id="howDlg">
+  <h2>How to play</h2>
+  <ol id="howList">
+    <li>Tap a bottle to pick up its top colour.</li>
+    <li>Tap another bottle to pour. You can pour onto the same colour, or into an empty bottle.</li>
+    <li>Fill every bottle with a single colour to win.</li>
+    <li>Stuck? Undo is free, your first hint each puzzle is free, and <b>every puzzle is solvable</b>. We'll tell you if you paint yourself into a corner.</li>
+  </ol>
+  <div class="row"><button id="howClose" class="on">Let's play</button></div>
 </dialog>
 
 <dialog id="adDlg">
@@ -143,8 +171,11 @@ dialog .row button{flex:1}
 </dialog>
 
 <dialog id="achDlg">
-  <h2>🏆 Trophies</h2>
-  <div id="achStats" style="color:var(--muted);font-size:13px"></div>
+  <h2>🏆 Quests &amp; trophies</h2>
+  <div class="sec">Today's quests</div>
+  <div id="questList"></div>
+  <div class="sec">Trophies</div>
+  <div id="achStats" style="color:var(--muted);font-size:13px;text-align:left"></div>
   <div id="achList"></div>
   <div class="row"><button id="achClose" class="on">Close</button></div>
 </dialog>
@@ -173,9 +204,9 @@ const LS = {
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
 const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, cb:false, snd:true,
-  coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
+  freezes:0, rs:{}, q:null, coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
-save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr);
+save.stats = Object.assign({}, DEF.stats, save.stats); save.owned = Object.assign({classic:true}, save.owned); save.ach = save.ach || {}; save.dr = Object.assign({}, DEF.dr, save.dr); save.rs = save.rs || {}; if(save.tut === undefined) save.tut = save.stats.wins > 0;
 
 /* ---------- sound (synthesised with WebAudio, no files) ---------- */
 const sfx = (()=>{
@@ -247,7 +278,9 @@ function solve(start, cap=60000, rnd=null){
     }
     return null;
   }
-  return dfs(start.map(b=>b.slice()), []);
+  const found = dfs(start.map(b=>b.slice()), []);
+  solve.exhausted = nodes <= cap;   // true + no path = this position is provably unsolvable
+  return found;
 }
 
 function generate(seedStr, nColors){
@@ -273,7 +306,7 @@ function generate(seedStr, nColors){
 }
 
 /* ---------- game state ---------- */
-let busy = false, fx = null, hintsUsed = 0, extraBottles = 0, hintPaid = "";
+let busy = false, fx = null, levelKind = "normal", hintsUsed = 0, extraBottles = 0, hintPaid = "";
 let mode = "daily", puzzleDate = "", seedStr = "", puzzle = null, state = [], history = [], sel = -1, moves = 0, finished = false;
 
 const $ = id => document.getElementById(id);
@@ -282,18 +315,28 @@ function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("
 
 function startGame(m){
   mode = m; finished = false; sel = -1; moves = 0; history = []; plan = null; hintsUsed = 0; extraBottles = 0; hintPaid = "";
-  let n;
+  $("stuck").hidden = true;
+  let n, kind = "normal";
   if(m==="daily"){
     const d = new Date(); puzzleDate = dateKey(d); seedStr = "daily-" + puzzleDate; n = DAILY_COLORS[d.getDay()];
     $("title").textContent = WEEKDAYS[d.getDay()] + " · " + dateKey(d);
   } else {
     const lv = save.level; seedStr = "level-" + lv; n = Math.min(4 + Math.floor((lv-1)/3), 11);
-    $("title").textContent = "Level " + lv;
+    // pacing: a gentler "breather" every 5th level, a bigger "boss" (double rewards) every 10th
+    kind = lv % 10 === 0 ? "boss" : (lv > 5 && lv % 5 === 0 ? "breather" : "normal");
+    if(kind === "boss") n = Math.min(n + 1, 12); else if(kind === "breather") n = Math.max(4, n - 2);
+    // assist: after 3 restarts of the same level the next try is one colour easier
+    let assisted = false;
+    if((save.rs[lv] || 0) >= 3 && n > 4){ n--; assisted = true; seedStr += "-assist"; }
+    $("title").textContent = "Level " + lv + (kind==="boss" ? " · Boss 👑" : kind==="breather" ? " · Breather 🌿" : "") + (assisted ? " · Assist" : "");
   }
+  levelKind = kind;
   puzzle = generate(seedStr, n);
   state = puzzle.bottles.map(b=>b.slice());
+  const resumed = restoreProgress();
   $("mDaily").classList.toggle("on", m==="daily"); $("mEndless").classList.toggle("on", m==="endless");
   render();
+  if(resumed){ toast("Resumed where you left off"); checkStuck(); }
 }
 
 function render(){
@@ -335,7 +378,8 @@ function doPour(a, b){
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
-    if(isSolved(state)) win(); else if(full) sfx.done();
+    qAdd("pours");
+    if(isSolved(state)) win(); else { persist(); checkStuck(); if(full) sfx.done(); }
   };
   if(REDUCED || !sEl || !tEl){ sfx.pour(); finish(); return; }
   sEl.classList.remove("sel");
@@ -360,7 +404,7 @@ function doPour(a, b){
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
 
 function win(){
-  finished = true;
+  finished = true; LS.set("cur." + mode, null); $("stuck").hidden = true;
   const st = starsFor(moves, puzzle.par);
   const flawless = hintsUsed === 0 && extraBottles === 0;
   let coins = 0, xp = 0, note = "", fresh = true;
@@ -372,21 +416,23 @@ function win(){
       save.streak = (save.last === dateKey(prev)) ? save.streak+1 : 1;
       save.last = k; save.best = Math.max(save.best, save.streak);
       save.won[k] = { moves, stars: st };
-      save.stats.daily++;
+      save.stats.daily++; qAdd("daily");
       coins = 25 + st*10 + Math.min(save.streak,7)*5; xp = 40 + st*15;
       note = "Streak: " + save.streak + " 🔥 (best " + save.best + ")";
     } else { fresh = false; note = "Practice run: today's result is already saved."; }
     $("next").textContent = "Done";
   } else {
-    save.stars += st; save.level++;
+    save.stars += st; delete save.rs[save.level]; save.level++;
     coins = 10 + st*5; xp = 20 + st*10;
-    note = "Next: Level " + save.level; $("next").textContent = "Next level";
+    if(levelKind === "boss"){ coins *= 2; xp *= 2; }
+    note = (levelKind === "boss" ? "👑 Boss bonus ×2<br>" : "") + "Next: Level " + save.level; $("next").textContent = "Next level";
   }
   let rewardLine = "";
   if(fresh){
     if(st===3) coins += 10;
     if(flawless){ coins += 10; save.stats.nohint++; }
     save.stats.wins++; if(st===3) save.stats.perfect++;
+    qAdd("wins"); if(st===3) qAdd("perfect"); if(flawless) qAdd("nohint"); if(mode==="endless") qAdd("endless");
     save.coins += coins;
     const ups = addXp(xp);
     rewardLine = "<br>+" + coins + " 🪙 · +" + xp + " XP" + (flawless ? " · no-help bonus" : "");
@@ -406,8 +452,8 @@ function win(){
 }
 
 /* ---------- controls ---------- */
-$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); };
-$("restart").onclick = ()=>{ if(busy) return; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; render(); };
+$("undo").onclick = ()=>{ if(busy||!history.length||finished) return; sfx.undo(); state = history.pop(); moves = Math.max(0,moves-1); sel=-1; render(); persist(); checkStuck(); };
+$("restart").onclick = ()=>{ if(busy) return; if(mode==="endless" && moves>0){ save.rs[save.level] = (save.rs[save.level]||0) + 1; LS.set("save", save); } $("stuck").hidden = true; plan = null; state = puzzle.bottles.map(b=>b.slice()); if(extraBottles) state.push([]); history=[]; moves=0; sel=-1; finished=false; render(); persist(); };
 /* hints follow one cached plan so repeated hints always make progress (no oscillating suggestions) */
 let plan = null;
 const exactKey = st => st.map(b=>b.join("")).join("|");
@@ -429,7 +475,7 @@ $("hint").onclick = ()=>{
   if(cost && save.coins < cost){ offerAd("Need 5 🪙 for another hint."); return; }
   if(cost){ save.coins -= cost; LS.set("save", save); }
   if(hintPaid !== k){ hintsUsed++; hintPaid = k; }
-  const [i,j] = m; sel = i; render();
+  const [i,j] = m; sel = i; render(); persist();
   const t = $("board").children[j]; if(t){ t.style.outline = "3px dashed #ffd24a"; t.style.outlineOffset = "3px"; setTimeout(()=>{ t.style.outline = ""; }, 1200); }
 };
 $("mDaily").onclick = ()=>{ if(!busy) startGame("daily"); };
@@ -438,7 +484,7 @@ $("next").onclick = ()=>$("win").close();
 $("win").addEventListener("close", ()=>{ if(finished && mode==="endless"){ startGame("endless"); if(save.level > ADS_CONFIG.interstitialEvery && (save.level-1) % ADS_CONFIG.interstitialEvery === 0) Ads.interstitial(); } });
 $("share").onclick = async ()=>{
   const st = starsFor(moves, puzzle.par);
-  const text = "Color Quest " + (mode==="daily"? dateKey() : "Level "+(save.level-1)) + "\n" + "⭐".repeat(st) + "☆".repeat(3-st) + " · " + moves + " moves (par " + puzzle.par + ")" + (mode==="daily" ? "\n🔥 " + save.streak : "");
+  const text = "Color Quest " + (mode==="daily"? dateKey() : "Level "+(save.level-1)) + "\n" + "⭐".repeat(st) + "☆".repeat(3-st) + " · " + moves + " moves (par " + puzzle.par + ")" + (mode==="daily" ? "\n🔥 " + save.streak + "-day streak\nSame puzzle for everyone today:" : "\nCan you beat it?") + "\n" + SHARE_URL;
   try{ if(NATIVE && window.CQNative) await window.CQNative.Share.share({ text }); else if(navigator.share) await navigator.share({text}); else { await navigator.clipboard.writeText(text); toast("Copied!"); } }catch(e){}
 };
 
@@ -467,10 +513,92 @@ const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false 
 $("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
 syncSnd();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
-$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
+$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd, tut:true }); LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
 /* streak decay if a day was missed */
+applyFreeze();
 (function(){ const y = new Date(); y.setDate(y.getDate()-1); if(save.last && save.last !== dateKey() && save.last !== dateKey(y)){ save.streak = 0; LS.set("save", save); } })();
+
+/* ---------- autosave: resume the puzzle exactly where you left it ---------- */
+function persist(){
+  if(finished || !puzzle) return;
+  LS.set("cur." + mode, { seed: seedStr, state, history: history.slice(-40), moves, hintsUsed, extraBottles });
+  LS.set("save", save);
+}
+function validState(st, pz){
+  if(!Array.isArray(st) || st.length < pz.bottles.length || st.length > pz.bottles.length + 1) return false;
+  const have = {}, want = {};
+  for(const b of st){ if(!Array.isArray(b) || b.length > CAP) return false; for(const c of b) have[c] = (have[c]||0) + 1; }
+  for(const b of pz.bottles) for(const c of b) want[c] = (want[c]||0) + 1;
+  const ks = Object.keys(want);
+  return ks.length === Object.keys(have).length && ks.every(k=>have[k] === want[k]);
+}
+function restoreProgress(){
+  const c = LS.get("cur." + mode, null);
+  if(!c || c.seed !== seedStr || !validState(c.state, puzzle) || isSolved(c.state)) return false;
+  state = c.state; history = (c.history || []).filter(h=>validState(h, puzzle));
+  moves = c.moves || 0; hintsUsed = c.hintsUsed || 0; extraBottles = c.extraBottles || 0;
+  return true;
+}
+
+/* ---------- dead-end detector: our solver proves when a position can no longer be won ---------- */
+let stuckTimer = 0;
+function checkStuck(){
+  $("stuck").hidden = true; clearTimeout(stuckTimer);
+  if(finished || busy) return;
+  stuckTimer = setTimeout(()=>{
+    if(finished || busy || isSolved(state)) return;
+    let anyMove = false;
+    for(let i=0;i<state.length && !anyMove;i++) for(let j=0;j<state.length;j++) if(i!==j && canPour(state[i], state[j])){ anyMove = true; break; }
+    let dead = !anyMove;
+    if(!dead){ const r = solve(state, 2500); dead = (!r && solve.exhausted === true); }
+    if(dead) $("stuck").hidden = false;
+  }, 60);
+}
+$("stUndo").onclick = ()=>$("undo").click();
+$("stBottle").onclick = ()=>$("bottle").click();
+
+/* ---------- daily quests + streak freeze ---------- */
+const QUEST_POOL = [
+  { id:"win3",  text:"Solve 3 puzzles",            key:"wins",    target:3,  reward:20 },
+  { id:"perf",  text:"Get 3 stars on a puzzle",    key:"perfect", target:1,  reward:25 },
+  { id:"nh2",   text:"Solve 2 puzzles with no hints", key:"nohint", target:2, reward:30 },
+  { id:"pour",  text:"Make 60 pours",              key:"pours",   target:60, reward:15 },
+  { id:"end2",  text:"Solve 2 Endless levels",     key:"endless", target:2,  reward:20 }
+];
+const DAILY_QUEST = { id:"daily", text:"Solve today's Daily puzzle", key:"daily", target:1, reward:25 };
+function todaysQuests(){
+  const rnd = mulberry32(hash("quests-" + dateKey())), pool = QUEST_POOL.slice(), pick = [];
+  while(pick.length < 2) pick.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  return [DAILY_QUEST].concat(pick);
+}
+function questState(){ const k = dateKey(); if(!save.q || save.q.date !== k) save.q = { date:k, prog:{}, claimed:{} }; return save.q; }
+function qAdd(key, n){ const q = questState(); q.prog[key] = (q.prog[key] || 0) + (n || 1); }
+function questsClaimable(){ const q = questState(); return todaysQuests().some(t=>(q.prog[t.key] || 0) >= t.target && !q.claimed[t.id]); }
+function renderQuests(){
+  const q = questState(), box = $("questList"); box.innerHTML = "";
+  todaysQuests().forEach(t=>{
+    const v = Math.min(q.prog[t.key] || 0, t.target), done = v >= t.target, got = !!q.claimed[t.id];
+    const el = document.createElement("div"); el.className = "qrow";
+    el.innerHTML = '<div class="qt"><b>' + t.text + '</b><div class="qbar"><i style="width:' + Math.round(v / t.target * 100) + '%"></i></div><small>' + v + '/' + t.target + '</small></div>';
+    const btn = document.createElement("button");
+    btn.textContent = got ? "✓ Done" : done ? "Claim +" + t.reward + " 🪙" : "🪙 " + t.reward; btn.disabled = !done || got; if(done && !got) btn.className = "on";
+    btn.onclick = ()=>{ q.claimed[t.id] = true; save.coins += t.reward; LS.set("save", save); hud(); renderAch(); sfx.done(); };
+    el.appendChild(btn); box.appendChild(el);
+  });
+}
+/* a missed day is forgiven once if you own a streak freeze */
+function applyFreeze(){
+  if(!save.last || !save.streak || !save.freezes) return;
+  const y = new Date(), y2 = new Date(); y.setDate(y.getDate()-1); y2.setDate(y2.getDate()-2);
+  if(save.last === dateKey(y2)){ save.freezes--; save.last = dateKey(y); LS.set("save", save); toast("❄️ Streak freeze saved your " + save.streak + "-day streak"); }
+}
+
+/* ---------- how to play ---------- */
+$("howBtn").onclick = ()=>{ $("setDlg").close(); $("howDlg").showModal(); };
+$("howClose").onclick = ()=>$("howDlg").close();
+$("howDlg").addEventListener("close", ()=>{ save.tut = true; LS.set("save", save); checkDailyReward(); });
+const SHARE_URL = "https://siddik-web.github.io/color-quest-pwa/";
 
 /* ---------- progression: coins, XP, trophies, themes, daily reward ---------- */
 const TITLES = ["Rookie","Mixer","Sorter","Pourer","Alchemist","Mastermind","Legend"];
@@ -483,6 +611,7 @@ function hud(){
   $("xpfill").style.width = Math.min(100, Math.round(save.xp / xpNeed(save.plv) * 100)) + "%";
   $("xptxt").textContent = save.xp + "/" + xpNeed(save.plv) + " XP";
   $("hint").textContent = hintsUsed === 0 ? "💡 Hint" : "💡 5🪙";
+  $("mAch").classList.toggle("dot", questsClaimable());
   $("bottle").textContent = extraBottles ? "🧪 Added" : "🧪 +1 · 30🪙";
 }
 
@@ -508,6 +637,7 @@ function checkAch(show){
   return got;
 }
 function renderAch(){
+  renderQuests();
   const box = $("achList"); box.innerHTML = "";
   ACH.forEach(a=>{
     const ok = !!save.ach[a.id], el = document.createElement("div");
@@ -603,6 +733,11 @@ $("doubleBtn").onclick = ()=>{
 function renderShop(){
   $("shopCoins").textContent = save.coins;
   const box = $("shopList"); box.innerHTML = "";
+  { const row = document.createElement("div"); row.className = "shoprow";
+    row.innerHTML = '<div class="sw" style="background:var(--glass);font-size:20px;padding:6px 10px">❄️</div><div class="nm">Streak freeze<br><small style="color:var(--muted);font-weight:400">Saves your streak if you miss a day. You have ' + save.freezes + '.</small></div>';
+    const fb = document.createElement("button"); fb.textContent = save.freezes >= 2 ? "Max 2" : "🪙 80"; fb.disabled = save.freezes >= 2;
+    fb.onclick = ()=>{ if(save.coins < 80){ toast("Need " + (80 - save.coins) + " more 🪙"); sfx.bad(); return; } save.coins -= 80; save.freezes++; LS.set("save", save); hud(); renderShop(); sfx.done(); };
+    row.appendChild(fb); box.appendChild(row); }
   Object.keys(THEMES).forEach(id=>{
     const t = THEMES[id], owned = !!save.owned[id], eq = save.theme === id;
     const row = document.createElement("div"); row.className = "shoprow";
@@ -631,13 +766,13 @@ $("bottle").onclick = ()=>{
   if(extraBottles){ toast("Extra bottle already added"); return; }
   if(save.coins < 30){ offerAd("Need 30 🪙 for an extra bottle."); return; }
   save.coins -= 30; LS.set("save", save); extraBottles = 1;
-  state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render();
+  state.push([]); history.forEach(h=>h.push([])); plan = null; sfx.done(); render(); persist(); checkStuck();
 };
 
 const REW = [10,15,20,25,30,40,75];
 let drPending = null;
 function checkDailyReward(){
-  const today = dateKey(); if(save.dr.last === today || $("drDlg").open) return;
+  const today = dateKey(); if(save.dr.last === today || $("drDlg").open || $("howDlg").open) return;
   const y = new Date(); y.setDate(y.getDate()-1);
   const day = (save.dr.last === dateKey(y)) ? (save.dr.day % 7) + 1 : 1;
   drPending = day;
@@ -667,7 +802,9 @@ function confetti(){
 
 /* new day while the app was left open */
 document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState==="hidden"){ persist(); return; }
   if(document.visibilityState!=="visible") return;
+  applyFreeze();
   const y = new Date(); y.setDate(y.getDate()-1);
   if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
   if(mode==="daily" && puzzleDate !== dateKey() && (moves===0 || finished)){ startGame("daily"); } else render();
@@ -685,9 +822,9 @@ if("serviceWorker" in navigator && !NATIVE){ window.addEventListener("load", ()=
 
 applyTheme(save.theme);
 startGame("daily");
-setTimeout(checkDailyReward, 350);
+setTimeout(()=>{ if(!save.tut) $("howDlg").showModal(); else checkDailyReward(); }, 350);
 Ads.init();
-window.__cq = { nextHint, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
+window.__cq = { persist, solve, checkStuck, setState(x){ state = x; }, nextHint, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
 })();
 </script>
 </body>
