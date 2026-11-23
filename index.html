@@ -33,15 +33,32 @@ button:disabled{opacity:.4}
 #board{flex:1;display:flex;flex-wrap:wrap;gap:var(--bgapy,22px) var(--bgapx,14px);justify-content:center;align-content:center;padding:8px 0}
 .bottle{width:var(--bw,48px);height:var(--bh,168px);border:3px solid rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.25);border-radius:6px 6px 24px 24px;background:var(--glass);display:flex;flex-direction:column-reverse;padding:3px;gap:2px;position:relative}
 .bottle.sel{transform:translateY(-18px);animation:lift .15s ease-out}
-.bottle.land{animation:land .26s ease-out;z-index:5}
+.bottle.land{animation:land .26s cubic-bezier(.22,1,.36,1);z-index:5}
+.bottle.emptied{animation:land .26s cubic-bezier(.22,1,.36,1),emptyPulse .45s ease-out .14s;z-index:5}
+.bottle.receiving{animation:receiveBounce .26s ease-out;box-shadow:0 0 14px color-mix(in srgb,var(--pc,#fff) 55%,transparent)}
 @keyframes land{from{transform:translate(var(--tx),var(--ty)) rotate(var(--rot))}to{transform:none}}
-.seg.fill{animation:fillIn .3s ease-out;transform-origin:bottom}
-@keyframes fillIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-.stream{position:fixed;width:6px;border-radius:3px;transform-origin:top;animation:streamIn .22s ease-out forwards;z-index:4;pointer-events:none}
+@keyframes emptyPulse{0%{box-shadow:inset 0 0 0 rgba(255,255,255,0)}45%{box-shadow:inset 0 0 18px rgba(255,255,255,.35),0 0 10px rgba(255,255,255,.2)}100%{box-shadow:inset 0 0 0 rgba(255,255,255,0)}}
+@keyframes receiveBounce{0%{transform:scale(1)}40%{transform:scale(1.04,.97)}100%{transform:scale(1)}}
+.seg.filling{transform-origin:bottom;transform:scaleY(0);animation:fillUp var(--dur,.24s) cubic-bezier(.2,.75,.35,1) var(--del,0s) forwards}
+.seg.filling::after,.seg.settle::after{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:rgba(255,255,255,.45);border-radius:50%;animation:meniscus var(--dur,.3s) ease-out var(--del,0s) forwards}
+.seg.drain{transform-origin:bottom;animation:drainOut var(--dur,.24s) cubic-bezier(.45,.05,.7,.95) var(--del,0s) forwards}
+.seg.drain::after,.seg.expose::after{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:rgba(255,255,255,.38);animation:meniscus var(--dur,.26s) ease-out var(--del,0s) forwards}
+.seg.settle{transform-origin:bottom;animation:settleWave .3s ease-out}
+@keyframes fillUp{0%{transform:scaleY(0);filter:brightness(1.22)}78%{transform:scaleY(1.04);filter:brightness(1.08)}100%{transform:scaleY(1);filter:brightness(1)}}
+@keyframes drainOut{0%{transform:scaleY(1);opacity:1}78%{transform:scaleY(.18);opacity:.9;filter:brightness(1.12)}100%{transform:scaleY(0);opacity:0}}
+@keyframes settleWave{0%{transform:scaleY(1.06)}45%{transform:scaleY(.95)}75%{transform:scaleY(1.02)}100%{transform:scaleY(1)}}
+@keyframes meniscus{0%{opacity:.85;transform:scaleX(.82)}50%{opacity:.5;transform:scaleX(1.08)}100%{opacity:0;transform:scaleX(1)}}
+.stream{position:fixed;width:6px;border-radius:999px;transform-origin:top;animation:streamIn .11s ease-out forwards;z-index:4;pointer-events:none;box-shadow:0 0 8px color-mix(in srgb,var(--pc,#fff) 55%,transparent)}
+.stream::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.55),transparent 45%,rgba(255,255,255,.35) 75%,transparent);background-size:100% 22px;animation:flowDown .22s linear infinite}
+.stream.cut{transform-origin:bottom;animation:streamOut .1s ease-in forwards}
 @keyframes streamIn{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@media (prefers-reduced-motion:reduce){.bottle.land,.seg.fill,.stream,.bottle.sel{animation:none}}
+@keyframes streamOut{from{transform:scaleY(1)}to{transform:scaleY(0)}}
+@keyframes flowDown{from{background-position:0 0}to{background-position:0 22px}}
+.splash{position:absolute;left:5px;right:5px;height:7px;border-radius:999px;background:rgba(255,255,255,.55);pointer-events:none;z-index:3;animation:splashRing .28s ease-out forwards}
+@keyframes splashRing{0%{transform:scaleX(.3) scaleY(.7);opacity:.95}60%{transform:scaleX(1.05) scaleY(1.3);opacity:.55}100%{transform:scaleX(1.15) scaleY(.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.bottle.land,.bottle.emptied,.bottle.receiving,.seg.filling,.seg.drain,.seg.settle,.seg.expose,.stream,.splash,.bottle.sel{animation:none}}
 @keyframes lift{from{transform:translateY(0)}to{transform:translateY(-18px)}}
-.seg{flex:none;height:calc((100% - 6px) / 4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:rgba(0,0,0,.65)}
+.seg{position:relative;overflow:hidden;flex:none;height:calc((100% - 6px) / 4);border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:rgba(0,0,0,.65)}
 .seg:first-child{border-bottom-left-radius:18px;border-bottom-right-radius:18px}
 .noshape .seg span{display:none}
 /* custom tube styles */
@@ -295,14 +312,14 @@ const sfx = (()=>{
     g.gain.setValueAtTime(.0001, now + t0); g.gain.exponentialRampToValueAtTime(vol, now + t0 + .01); g.gain.exponentialRampToValueAtTime(.0001, now + t0 + dur);
     o.connect(g); g.connect(master); o.start(now + t0); o.stop(now + t0 + dur + .02);
   }
-  function pour(){
+  function pour(dur=.5){
     if(!ready()) return;
-    const dur = .55, len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    const len = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
     for(let i=0;i<len;i++) d[i] = Math.random()*2 - 1;
     const src = ctx.createBufferSource(); src.buffer = buf;
     const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.Q.value = 2.5;
     bp.frequency.setValueAtTime(500, ctx.currentTime); bp.frequency.linearRampToValueAtTime(1400, ctx.currentTime + dur);
-    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(.55, ctx.currentTime + .12); g.gain.linearRampToValueAtTime(.0001, ctx.currentTime + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(.0001, ctx.currentTime); g.gain.linearRampToValueAtTime(.55, ctx.currentTime + .1); g.gain.linearRampToValueAtTime(.0001, ctx.currentTime + dur);
     src.connect(bp); bp.connect(g); g.connect(master); src.start();
   }
   return {
@@ -420,8 +437,17 @@ function render(){
   state.forEach((b,i)=>{
     const el = document.createElement("div");
     el.className = "bottle" + (i===sel?" sel":"") + (b.length===CAP && b.every(x=>x===b[0])?" done":"");
-    b.forEach((c,si)=>{ const s = document.createElement("div"); s.className = "seg" + (fx && fx.to===i && si >= b.length - fx.n ? " fill" : ""); s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>"; el.appendChild(s); });
-    if(fx && fx.from===i){ el.classList.add("land"); el.style.setProperty("--tx", fx.tx+"px"); el.style.setProperty("--ty", fx.ty+"px"); el.style.setProperty("--rot", fx.rot+"deg"); }
+    b.forEach((c,si)=>{
+      const s = document.createElement("div");
+      const cls = fx && fx.to===i && si === b.length - 1 ? " settle" : (fx && fx.from===i && fx.exposed && si === b.length - 1 ? " expose" : "");
+      s.className = "seg" + cls;
+      s.style.background = COLORS[c]; s.innerHTML = "<span>"+SYMBOLS[c]+"</span>";
+      el.appendChild(s);
+    });
+    if(fx && fx.from===i){
+      el.classList.add(fx.emptied ? "emptied" : "land");
+      el.style.setProperty("--tx", fx.tx+"px"); el.style.setProperty("--ty", fx.ty+"px"); el.style.setProperty("--rot", fx.rot+"deg");
+    }
     el.setAttribute("role","button"); el.setAttribute("aria-label","Bottle "+(i+1)+(b.length? ", "+b.length+" layers":", empty")); el.addEventListener("click", ()=>tap(i));
     board.appendChild(el);
   });
@@ -443,12 +469,14 @@ function tap(i){
 function doPour(a, b){
   busy = true;
   history.push(state.map(x=>x.slice()));
-  const color = topOf(state[a]);
+  const color = topOf(state[a]), hex = COLORS[color];
+  const oldA = state[a].length, oldB = state[b].length;
+  const count = Math.min(topRun(state[a]), CAP - oldB);
   const els = $("board").children, sEl = els[a], tEl = els[b];
   let tx = 0, ty = 0, rot = 0;
   const finish = ()=>{
     const n = pour(state, a, b); moves++; sel = -1;
-    fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot };
+    fx = REDUCED ? null : { from:a, to:b, n, tx, ty, rot, emptied: state[a].length === 0, exposed: state[a].length > 0 };
     busy = false; render();
     if(navigator.vibrate) navigator.vibrate(15);
     const full = state[b].length === CAP && state[b].every(x=>x===state[b][0]);
@@ -459,20 +487,62 @@ function doPour(a, b){
   sEl.classList.remove("sel");
   const sr = sEl.getBoundingClientRect(), tr = tEl.getBoundingClientRect();
   const dir = (tr.left + tr.width/2) >= (sr.left + sr.width/2) ? 1 : -1;
-  rot = dir * 65;
-  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2 * dir * dir;   // horizontal shift of the mouth when tilted
+  rot = dir * 68;
+  const mouthX = Math.sin(rot*Math.PI/180) * sr.height/2;
   tx = (tr.left + tr.width/2) - (sr.left + sr.width/2) - Math.abs(mouthX) * dir;
   ty = (tr.top - 14) - (sr.top + sr.height/2) + Math.cos(rot*Math.PI/180) * sr.height/2;
-  sEl.style.zIndex = 5; sEl.style.transition = "transform .3s ease";
+  const tiltMs = 210, stepMs = 155, pourMs = Math.max(240, count * stepMs + 50), cutMs = 100;
+  sEl.style.zIndex = 5; sEl.style.transition = "transform .21s cubic-bezier(.22,.9,.32,1)";
   sEl.style.transform = "translate("+tx+"px,"+ty+"px) rotate("+rot+"deg)";
-  sfx.pour();
+  setTimeout(()=>sfx.pour((pourMs + cutMs) / 1000), 130);
   const stream = document.createElement("div");
   setTimeout(()=>{
-    stream.className = "stream"; stream.style.background = COLORS[color];
-    stream.style.left = (tr.left + tr.width/2 - 3) + "px"; stream.style.top = (tr.top - 10) + "px"; stream.style.height = (tr.height * .75) + "px";
+    const cs = getComputedStyle(tEl);
+    const padT = parseFloat(cs.borderTopWidth) + parseFloat(cs.paddingTop);
+    const padBot = parseFloat(cs.paddingBottom);
+    const padB = parseFloat(cs.borderBottomWidth) + padBot;
+    const innerH = tr.height - padT - padB;
+    const slotH = (innerH - 6) / 4;
+    const baseH = oldB ? oldB * slotH + (oldB - 1) * 2 : 0;
+    const streamTop = tr.top - 10;
+    const streamH = Math.max(18, (tr.bottom - padB - baseH) - streamTop);
+    stream.className = "stream"; stream.style.background = hex; stream.style.setProperty("--pc", hex);
+    stream.style.left = (tr.left + tr.width/2 - 3) + "px"; stream.style.top = streamTop + "px"; stream.style.height = streamH + "px";
     document.body.appendChild(stream);
-  }, 280);
-  setTimeout(()=>{ stream.remove(); finish(); }, 600);
+
+    const perSlot = pourMs / count;
+    // Empty the poured slot(s) from the source bottle top-down
+    const sSegs = sEl.querySelectorAll(".seg");
+    for(let k = 0; k < count; k++){
+      const seg = sSegs[oldA - 1 - k];
+      if(seg){
+        seg.style.setProperty("--del", (k * perSlot) + "ms");
+        seg.style.setProperty("--dur", perSlot + "ms");
+        seg.classList.add("drain");
+      }
+    }
+    // Fill the receiving slot(s) in the target bottle bottom-up with splash rings
+    tEl.style.setProperty("--pc", hex);
+    tEl.classList.add("receiving");
+    for(let k = 0; k < count; k++){
+      const s = document.createElement("div");
+      s.className = "seg filling";
+      s.style.background = hex;
+      s.style.setProperty("--del", (45 + k * perSlot) + "ms");
+      s.style.setProperty("--dur", perSlot + "ms");
+      s.innerHTML = "<span>"+SYMBOLS[color]+"</span>";
+      tEl.appendChild(s);
+      setTimeout(()=>{
+        const sp = document.createElement("div");
+        sp.className = "splash";
+        sp.style.bottom = (padBot + (oldB + k) * (slotH + 2) + slotH * .22) + "px";
+        tEl.appendChild(sp);
+        setTimeout(()=>sp.remove(), 300);
+      }, 45 + k * perSlot);
+    }
+  }, tiltMs);
+  setTimeout(()=>{ stream.classList.add("cut"); }, tiltMs + pourMs);
+  setTimeout(()=>{ stream.remove(); finish(); }, tiltMs + pourMs + cutMs);
 }
 
 function starsFor(m, par){ return m <= Math.ceil(par*1.1) ? 3 : m <= par*1.5 ? 2 : 1; }
