@@ -135,6 +135,8 @@ dialog .row button{flex:1}
 .sec{text-align:left;font-weight:700;margin:12px 0 2px}
 #howList{text-align:left;line-height:1.5;padding-left:20px;margin:10px 0}
 #howList li{margin:8px 0}
+.volrow{display:flex;align-items:center;gap:10px;background:var(--glass);border-radius:12px;padding:8px 12px;margin-top:10px;font-size:13px;color:var(--muted)}
+.volrow input{flex:1;accent-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -192,7 +194,9 @@ dialog .row button{flex:1}
   <div class="row"><button id="install" hidden>⬇ Install app</button></div>
   <div class="row"><button id="howBtn">How to play</button></div>
   <div class="row"><button id="privBtn" hidden>Ad privacy choices</button></div>
-  <div class="row"><button id="sndBtn">Sound: On</button></div>
+  <div class="row"><button id="sndBtn">Sound: On</button><button id="bgmBtn">Music: On</button></div>
+  <div class="row"><button id="bgmTrackBtn">Style: Calm</button></div>
+  <div class="volrow"><span>🎵 Volume</span><input id="bgmVol" type="range" min="0" max="100" step="5" aria-label="Music volume"><b id="bgmVolTxt" style="color:var(--text);min-width:34px;text-align:right">40%</b></div>
   <div class="row"><button id="cbBtn">Colour-blind symbols</button></div>
   <div class="row"><button id="resetBtn">Reset progress</button></div>
   <div class="row"><button id="setClose" class="on">Close</button></div>
@@ -279,7 +283,7 @@ const LS = {
   get(k, d){ try{ const v = localStorage.getItem("cq."+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem("cq."+k, JSON.stringify(v)); }catch(e){} }
 };
-const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, lvStars:{}, cb:false, snd:true,
+const DEF = { streak:0, best:0, last:null, won:{}, stars:0, level:1, lvStars:{}, cb:false, snd:true, bgm:true, bgmTrack:"calm", bgmVol:40,
   freezes:0, rs:{}, q:null, coins:0, xp:0, plv:1, theme:"classic", owned:{classic:true}, tube:"classic", ownedTubes:{classic:true},
   inv:{hints:0,bottles:0,magic:0}, ach:{}, stats:{wins:0,perfect:0,nohint:0,daily:0}, dr:{last:null,day:0} };
 let save = Object.assign(JSON.parse(JSON.stringify(DEF)), LS.get("save", {}));
@@ -329,6 +333,113 @@ const sfx = (()=>{
     pour,
     done(){ if(!ready()) return; tone(880, 0, .18, "sine", .3); tone(1320, .09, .25, "sine", .28); },
     win(){ if(!ready()) return; [523.25, 659.25, 783.99, 1046.5].forEach((f,k)=>tone(f, k*.11, .3, "triangle", .35)); }
+  };
+})();
+
+/* ---------- background music (soft WebAudio synth with 3 moods, works offline) ---------- */
+const BGM_TRACKS = {
+  calm: {
+    name:"Calm", stepMs:420,
+    chords:[[48,55,59,64],[45,52,55,60],[41,48,52,57],[43,50,55,59]],
+    melody:[72,0,76,0,79,0,76,74, 72,0,69,0,72,0,0,0, 69,0,72,0,76,0,72,69, 67,0,71,0,74,0,0,0],
+    wave:"triangle", melWave:"sine", filter:1150
+  },
+  lofi: {
+    name:"Lo-Fi", stepMs:385,
+    chords:[[50,57,60,64],[43,53,59,64],[48,55,59,62],[45,52,55,62]],
+    melody:[0,74,0,72,69,0,72,0, 0,76,0,74,71,0,67,0, 0,72,0,76,79,0,74,0, 72,0,69,0,0,0,67,0],
+    wave:"sine", melWave:"triangle", filter:920
+  },
+  dreamy: {
+    name:"Dreamy", stepMs:500,
+    chords:[[40,47,54,59],[48,55,59,64],[43,50,54,59],[50,57,59,66]],
+    melody:[79,0,0,76,0,0,74,0, 76,0,0,71,0,0,0,0, 74,0,0,79,0,0,78,0, 74,0,0,71,0,0,0,0],
+    wave:"sine", melWave:"sine", filter:1400
+  }
+};
+const bgm = (()=>{
+  let ctx = null, out = null, lpf = null, timer = 0, step = 0, playing = false, unlocked = false;
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const volVal = ()=> Math.max(0, Math.min(1, (save.bgmVol == null ? 40 : save.bgmVol) / 100)) * .22;
+  const track = ()=> BGM_TRACKS[save.bgmTrack] || BGM_TRACKS.calm;
+  function init(){
+    if(ctx) return true;
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return false;
+      ctx = new AC();
+      out = ctx.createGain(); out.gain.value = volVal();
+      lpf = ctx.createBiquadFilter(); lpf.type = "lowpass"; lpf.frequency.value = track().filter;
+      const dly = ctx.createDelay(1.0); dly.delayTime.value = .36;
+      const fb = ctx.createGain(); fb.gain.value = .24;
+      const wet = ctx.createGain(); wet.gain.value = .22;
+      lpf.connect(out);
+      lpf.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(out);
+      out.connect(ctx.destination);
+      return true;
+    }catch(e){ return false; }
+  }
+  function note(midi, dur, type, gain, atk=.04){
+    if(!ctx || !lpf) return;
+    const now = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(hz(midi), now);
+    g.gain.setValueAtTime(.0001, now);
+    g.gain.linearRampToValueAtTime(gain, now + atk);
+    g.gain.exponentialRampToValueAtTime(.0001, now + dur);
+    o.connect(g); g.connect(lpf); o.start(now); o.stop(now + dur + .05);
+  }
+  function tick(){
+    if(!playing || !ctx || ctx.state !== "running") return;
+    const tr = track(), bar = Math.floor(step / 8) % tr.chords.length, beat = step % 8;
+    if(beat === 0){
+      const chord = tr.chords[bar];
+      chord.forEach((m, idx)=> note(m, tr.stepMs * 7.8 / 1000, tr.wave, idx === 0 ? .16 : .085, .14));
+    } else if(beat === 4){
+      const chord = tr.chords[bar];
+      note(chord[1], tr.stepMs * 3.2 / 1000, tr.wave, .055, .08);
+    }
+    const mel = tr.melody[step % tr.melody.length];
+    if(mel) note(mel, tr.stepMs * 2.4 / 1000, tr.melWave, .13, .025);
+    step = (step + 1) % 32;
+    timer = setTimeout(tick, tr.stepMs);
+  }
+  function start(){
+    if(save.bgm === false || document.visibilityState === "hidden") return;
+    if(!init()) return;
+    unlocked = true;
+    if(lpf) lpf.frequency.setTargetAtTime(track().filter, ctx.currentTime, .15);
+    if(out) out.gain.setTargetAtTime(volVal(), ctx.currentTime, .15);
+    const go = ()=>{
+      if(playing || save.bgm === false || document.visibilityState === "hidden") return;
+      playing = true; clearTimeout(timer); tick();
+    };
+    if(ctx.state === "suspended") ctx.resume().then(go).catch(()=>{});
+    else go();
+  }
+  function stop(){
+    playing = false; clearTimeout(timer); timer = 0;
+    if(out && ctx) out.gain.setTargetAtTime(.0001, ctx.currentTime, .08);
+  }
+  function setVolume(v){
+    save.bgmVol = Math.max(0, Math.min(100, Number(v) || 0));
+    if(out && ctx && playing) out.gain.setTargetAtTime(volVal(), ctx.currentTime, .06);
+  }
+  function setTrack(id){
+    if(!BGM_TRACKS[id]) return;
+    save.bgmTrack = id; step = 0;
+    if(lpf && ctx) lpf.frequency.setTargetAtTime(track().filter, ctx.currentTime, .12);
+    if(playing){ clearTimeout(timer); tick(); }
+  }
+  function unlock(){
+    if(unlocked) return;
+    unlocked = true;
+    if(save.bgm !== false) start();
+  }
+  document.addEventListener("pointerdown", unlock, { once:true, passive:true });
+  document.addEventListener("keydown", unlock, { once:true, passive:true });
+  return {
+    start, stop, setVolume, setTrack,
+    get isPlaying(){ return playing; },
+    resumeIfOn(){ if(unlocked && save.bgm !== false) start(); }
   };
 })();
 const REDUCED = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -728,8 +839,37 @@ $("setClose").onclick = ()=>$("setDlg").close();
 const syncSnd = ()=>{ $("sndBtn").textContent = "Sound: " + (save.snd === false ? "Off" : "On"); };
 $("sndBtn").onclick = ()=>{ save.snd = save.snd === false; LS.set("save", save); syncSnd(); if(save.snd !== false) sfx.select(); };
 syncSnd();
+const TRACK_IDS = Object.keys(BGM_TRACKS);
+const syncBgm = ()=>{
+  const on = save.bgm !== false;
+  $("bgmBtn").textContent = "Music: " + (on ? "On" : "Off");
+  $("bgmTrackBtn").textContent = "Style: " + (BGM_TRACKS[save.bgmTrack] || BGM_TRACKS.calm).name;
+  $("bgmTrackBtn").disabled = !on;
+  const v = save.bgmVol == null ? 40 : save.bgmVol;
+  $("bgmVol").value = v; $("bgmVol").disabled = !on;
+  $("bgmVolTxt").textContent = v + "%";
+};
+$("bgmBtn").onclick = ()=>{
+  save.bgm = save.bgm === false;
+  LS.set("save", save); syncBgm();
+  if(save.bgm) bgm.start(); else bgm.stop();
+  if(save.snd !== false) sfx.select();
+};
+$("bgmTrackBtn").onclick = ()=>{
+  const idx = TRACK_IDS.indexOf(save.bgmTrack);
+  const next = TRACK_IDS[(idx + 1) % TRACK_IDS.length];
+  bgm.setTrack(next); LS.set("save", save); syncBgm();
+  if(save.bgm !== false) bgm.start();
+  if(save.snd !== false) sfx.select();
+};
+$("bgmVol").oninput = e=>{
+  bgm.setVolume(e.target.value);
+  $("bgmVolTxt").textContent = save.bgmVol + "%";
+  LS.set("save", save);
+};
+syncBgm();
 $("cbBtn").onclick = ()=>{ save.cb = !save.cb; LS.set("save", save); render(); toast(save.cb?"Symbols on":"Symbols off"); };
-$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd, tut:true }); curLevel = 1; LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
+$("resetBtn").onclick = ()=>{ if(confirm("Reset all progress?")){ save = Object.assign(JSON.parse(JSON.stringify(DEF)), { cb:save.cb, snd:save.snd, bgm:save.bgm, bgmTrack:save.bgmTrack, bgmVol:save.bgmVol, tut:true }); curLevel = 1; LS.set("save", save); applyTheme("classic"); $("setDlg").close(); startGame(mode); checkDailyReward(); } };
 
 /* streak decay if a day was missed */
 applyFreeze();
@@ -1076,8 +1216,9 @@ function confetti(){
 
 /* new day while the app was left open */
 document.addEventListener("visibilitychange", ()=>{
-  if(document.visibilityState==="hidden"){ persist(); return; }
+  if(document.visibilityState==="hidden"){ bgm.stop(); persist(); return; }
   if(document.visibilityState!=="visible") return;
+  bgm.resumeIfOn();
   applyFreeze();
   const y = new Date(); y.setDate(y.getDate()-1);
   if(save.last && save.last !== dateKey() && save.last !== dateKey(y) && save.streak){ save.streak = 0; LS.set("save", save); }
@@ -1098,7 +1239,7 @@ applyTheme(save.theme);
 startGame("daily");
 setTimeout(()=>{ if(!save.tut) $("howDlg").showModal(); else checkDailyReward(); }, 350);
 Ads.init();
-window.__cq = { persist, solve, checkStuck, setState(x){ state = x; }, nextHint, startGame, openLevels, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
+window.__cq = { persist, solve, checkStuck, setState(x){ state = x; }, nextHint, startGame, openLevels, bgm, get state(){ return state; }, get save(){ return save; }, checkDailyReward };
 })();
 </script>
 </body>
